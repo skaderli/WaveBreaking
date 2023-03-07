@@ -12,12 +12,17 @@
 WaveBreaking
 ============
 
-WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole. By applying two different breaking indeces, regions of RWB are identified and differenct characteristics of the events such as size and intensity are calculated. Finally, the tracking method provides information about the temporal evolution of the wave breaking events.
+---> ADD PICTURE    
 
-The detection of RWB is based on two different wave breaking indices:
+WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole. By applying two different breaking indices, regions of RWB are identified and differenct characteristics of the breaking events such as area and intensity are calculated. Finally, the tracking routine provides information about the temporal evolution of the wave breaking events.
 
-* Streamer index by Wernli and Sprenger (2007)
+The detection of RWB is based on applying a wave breaking index to the dynamical tropopause. The WaveBreaking package provides to different RWB indices:
+
+* Streamer index by Wernli and Sprenger (2007):
+  The streamer index is based on work by [Wernli and Sprenger (2007)]
 * Overturning index by Barnes and Hartmann (2012)
+
+[Wernli and Sprenger (2007)]: https://journals.ametsoc.org/view/journals/atsc/64/5/jas3912.1.xml
 
 The tool is based on xarray...
 
