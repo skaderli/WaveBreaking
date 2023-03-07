@@ -779,6 +779,9 @@ class wavebreaking(object):
         
         logger.info("Variable created: {}".format(name))
         
+    def track(self):
+        "functions needs to be added"
+        
     def plot_clim(self, variable, season = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, label = True, **kwargs):
         
         if variable not in self.variables:
