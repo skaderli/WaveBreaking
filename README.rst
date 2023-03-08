@@ -1,8 +1,5 @@
 .. image:: https://img.shields.io/pypi/v/wavebreaking.svg
         :target: https://pypi.python.org/pypi/wavebreaking
-.. image:: https://readthedocs.org/projects/wavebreaking/badge/?version=latest
-        :target: https://wavebreaking.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
 
 ============
 WaveBreaking
