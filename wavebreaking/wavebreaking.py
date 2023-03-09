@@ -1,5 +1,3 @@
-"""Main module."""
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -452,7 +450,7 @@ class wavebreaking(object):
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
-        contours = [self.get_contour_timestep(step, level=level, variable=variable, periodic_add=120) for step,p in zip(times,progress)]
+        contours = [self.get_contour_timestep(step, level=level, variable=variable, periodic_add=periodic_add) for step,p in zip(times,progress)]
         
         self.contours = pd.concat([item[0] for item in contours]).reset_index(drop=True)
         
@@ -461,7 +459,7 @@ class wavebreaking(object):
         
         logger.info('{} contour(s) identified!'.format(len(self.contours)))
         
-    def get_contour_timestep(self, step, variable, level, periodic_add = 120):
+    def get_contour_timestep(self, step, variable, level, periodic_add):
 
         #define data
         ds = self.dataset.sel({self._time_name:step})[variable]
@@ -775,12 +773,9 @@ class wavebreaking(object):
         
         events_concat = events.groupby(events.date).apply(lambda s: pd.concat([row.coords for index,row in s.iterrows()])).reset_index().drop("level_1", axis =1)
         self.dataset[name] = xr.zeros_like(xr.DataArray(np.zeros((self.dims[self._time_name],self.dims[self._latitude_name],self.dims[self._longitude_name])), dims = [self._time_name, self._latitude_name, self._longitude_name]))
-        self.dataset[name].loc[{"time":events_concat.date.to_xarray(), "lat":events_concat.lat.to_xarray(), "lon":events_concat.lon.to_xarray()}] = np.ones(len(events_concat))
+        self.dataset[name].loc[{self._time_name:events_concat.date.to_xarray(), self._latitude_name:events_concat[self._latitude_name].to_xarray(), self._longitude_name:events_concat[self._longitude_name].to_xarray()}] = np.ones(len(events_concat))
         
         logger.info("Variable created: {}".format(name))
-        
-    def track(self):
-        "functions needs to be added"
         
     def plot_clim(self, variable, season = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, label = True, **kwargs):
         
@@ -821,7 +816,7 @@ class wavebreaking(object):
         if "cmap" in kwargs: cmap = kwargs.get("cmap")
             
         p = freq.where(freq>0).plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max")
-
+        """
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=12, weight='bold')
@@ -832,7 +827,7 @@ class wavebreaking(object):
 
         cbar.dividers.set_color('black')
         cbar.dividers.set_linewidth(2)
-
+        """
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
         
