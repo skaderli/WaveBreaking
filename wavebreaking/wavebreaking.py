@@ -123,7 +123,7 @@ class wavebreaking(object):
         except AttributeError:
             # Assume it's an empty Blocking()
             string = "\
-            Empty contrack container.\n\
+            Empty wavebreaking container.\n\
             Hint: use read() to load data."
         return string
 
@@ -202,7 +202,7 @@ class wavebreaking(object):
             self.ds = xr.open_dataset(filename, **kwargs)
             logger.debug('read: {}'.format(self.__str__))
         else:
-            errmsg = 'contrack() is already set!'
+            errmsg = 'wavebreaking() is already set!'
             raise ValueError(errmsg)
             
     def read_xarray(self, ds):
