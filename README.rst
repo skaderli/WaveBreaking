@@ -25,10 +25,10 @@ The tool is designed to analyze gridded data provided as an `xarray.Dataset <htt
 Important information:
 -----------------
 
-* The package is still under constructuion and therefore, major errors could occurr. 
+* The package is still under constructuion and therefore, major errors could occur. 
 * Free software: MIT license
 * Documentation: https://wavebreaking.readthedocs.io.
-* Further documentation can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
+* Further documentation about the implemented methods can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
 
 Installation
 --------
