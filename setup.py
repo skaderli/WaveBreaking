@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = ['numpy',
                 'xarray',
-                'netCDF4',
+                'netcdf4',
                 'pandas',
                 'scikit-image',
                 'scipy',
@@ -21,7 +21,7 @@ requirements = ['numpy',
                 'shapely',
                 'scikit-learn',
                 'matplotlib',
-                'Cartopy',
+                'cartopy',
                 'seaborn']
 
 test_requirements = ['pytest>=3', ]
