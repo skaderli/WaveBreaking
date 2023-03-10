@@ -10,7 +10,19 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
+requirements = ['numpy',
+                'xarray',
+                'netcdf4',
+                'pandas',
+                'scikit-image',
+                'scipy',
+                'itertools',
+                'tqdm'
+                'wrf-python','shapely',
+                'sklearn',
+                'matplotlib',
+                'cartopy',
+                'seaborn']
 
 test_requirements = ['pytest>=3', ]
 
