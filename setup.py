@@ -18,8 +18,9 @@ requirements = ['numpy',
                 'scipy',
                 'itertools',
                 'tqdm'
-                'wrf-python','shapely',
-                'sklearn',
+                'wrf-python',
+                'shapely',
+                'scikit-learn',
                 'matplotlib',
                 'cartopy',
                 'seaborn']
