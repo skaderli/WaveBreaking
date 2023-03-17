@@ -777,6 +777,32 @@ class wavebreaking(object):
         
         logger.info("Variable created: {}".format(name))
         
+    def event_tracking(self, events):
+        
+        if events.empty:
+            errmsg = 'Your events DataFrame is empty!'
+            raise ValueError(errmsg)
+            
+        logger.info('Tracking events over time...')
+        dates = [pd.Timestamp(date).strftime('%Y-%m-%d') for date in self.dataset[self._time_name].values]
+        progress = tqdm(range(0,len(dates)-1), leave = True, position = 0)
+
+        combine = []
+
+        for i,r in zip(range(0,len(dates)-1), progress):
+            index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
+            combine.append([combination for combination in index_combinations if not set(map(tuple,events.loc[combination[0]].coords.values)).isdisjoint(set(map(tuple,events.loc[combination[1]].coords.values)))])
+
+        combine = list(itertools.chain.from_iterable(combine))
+        combine = self.combine_shared(combine)
+
+        events["label"] = events.index
+
+        for item in combine:
+            events.loc[item, "label"]= min(item)
+            
+        self.labeled_events = events
+        
     def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
         
         if variable not in self.variables:
@@ -939,4 +965,3 @@ class wavebreaking(object):
              output.append(list(first))
              l = rest
          return output
-    
