@@ -123,7 +123,7 @@ class wavebreaking(object):
         except AttributeError:
             # Assume it's an empty Blocking()
             string = "\
-            Empty wavebreaking container.\n\
+            Empty contrack container.\n\
             Hint: use read() to load data."
         return string
 
@@ -202,7 +202,7 @@ class wavebreaking(object):
             self.ds = xr.open_dataset(filename, **kwargs)
             logger.debug('read: {}'.format(self.__str__))
         else:
-            errmsg = 'wavebreaking() is already set!'
+            errmsg = 'contrack() is already set!'
             raise ValueError(errmsg)
             
     def read_xarray(self, ds):
@@ -777,7 +777,7 @@ class wavebreaking(object):
         
         logger.info("Variable created: {}".format(name))
         
-    def plot_clim(self, variable, season = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, label = True, **kwargs):
+    def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
         
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
@@ -786,12 +786,12 @@ class wavebreaking(object):
         data_crs = ccrs.PlateCarree()
         proj = proj
 
-        fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,10))
+        fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
 
-        if season is None:
+        if seasons is None:
             freq = xr.where(self.dataset[variable]>0,1,0).sum(dim=self._time_name)/self.dims[self._time_name]*100
         else:
-            ds_season = self.dataset[variable].sel({self._time_name:self.dataset[self._time_name].dt.month.isin(season)})
+            ds_season = self.dataset[variable].sel({self._time_name:self.dataset[self._time_name].dt.month.isin(seasons)})
             freq = xr.where(ds_season>0,1,0).sum(dim=self._time_name)/len(ds_season[self._time_name])*100
 
         if smooth_passes > 0:
@@ -802,38 +802,38 @@ class wavebreaking(object):
         if periodic == True:
             freq = xr.concat([freq, freq.isel({self._longitude_name:0}).assign_coords({"lon":freq[self._longitude_name].max()+1})], dim = self._longitude_name)
             
-        max_level = np.round(freq.max()*2)/2
-        levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
-        if "levels" in kwargs: levels = kwargs.get("levels")
+        if levels is None:
+            max_level = np.round(freq.max()*2)/2
+            levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
         
         # define cmap
-        def truncate_colormap(cmap, minval=0, maxval=1.0, n=100):
-            new_cmap = colors.LinearSegmentedColormap.from_list(
-                'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
-                cmap(np.linspace(minval, maxval, n)))
-            return new_cmap
-        cmap = truncate_colormap(plt.get_cmap("RdYlBu_r"), 0.3, 1)
-        if "cmap" in kwargs: cmap = kwargs.get("cmap")
+        if cmap is None:
+            def truncate_colormap(cmap, minval=0, maxval=1.0, n=100):
+                new_cmap = colors.LinearSegmentedColormap.from_list(
+                    'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+                    cmap(np.linspace(minval, maxval, n)))
+                return new_cmap
+            cmap = truncate_colormap(plt.get_cmap("RdYlBu_r"), 0.3, 1)
             
         p = freq.where(freq>0).plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max")
-        """
-        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
+        
+        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=12, weight='bold')
-        cbar.set_label(label="Occurrence frequency in %",size=16, fontweight="bold",labelpad=15)
+        cbar.set_label(label="Occurrence frequency in %",size=12, fontweight="bold",labelpad=15)
 
         cbar.outline.set_color('black')
         cbar.outline.set_linewidth(2)
 
         cbar.dividers.set_color('black')
         cbar.dividers.set_linewidth(2)
-        """
+        
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
         
-        if label == True:
+        if labels == True:
             gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
-            gr.xlabel_style = {'size': 14, 'color': 'black', "rotation":0}
+            gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
             gr.ylabel_style = {'size': 12, 'color': 'black'}
         
         if proj == ccrs.NorthPolarStereo():
@@ -844,12 +844,10 @@ class wavebreaking(object):
             ax.set_boundary(circle, transform=ax.transAxes)
             ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
             
-        title = ""
-        if "title" in kwargs: title = kwargs.get("title")
         ax.set_title(title, fontweight='bold',fontsize=20)
         
     
-    def plot_step(self, flag_variable, variable, step, proj = ccrs.PlateCarree(), periodic = True, label = True, **kwargs):
+    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(), periodic = True, levels = None, labels = True, cmap = None, title = ""):
         
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
@@ -871,23 +869,23 @@ class wavebreaking(object):
         data_crs = ccrs.PlateCarree()
         proj = proj
 
-        fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,10))
-
-        max_level = np.round(ds[variable].max()*2)/2
-        levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
-        if "levels" in kwargs: levels = kwargs.get("levels")
+        fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
         
-        cmap = "Blues"
-        if "cmap" in kwargs: cmap = kwargs.get("cmap")
+        if levels is None:
+            max_level = np.round(ds[variable].max()*2)/2
+            levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
+        
+        if cmap is None:
+            cmap = "Blues"
             
         p = ds[variable].plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max", alpha = 0.8)
-        c = ds[variable].plot.contour(ax=ax, levels = [2],  transform=data_crs, linewidths = 2, colors = "black")
+        c = ds[variable].plot.contour(ax=ax, levels = np.asarray(contour_level).tolist(),  transform=data_crs, linewidths = 2, colors = "black")
         f = ds[flag_variable].where(ds[flag_variable]>0).plot.contourf(ax=ax, colors = ["white", "gold"], levels = [0,0.5],  transform=data_crs, add_colorbar = False)
 
-        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
+        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=11, weight='bold')
-        cbar.set_label(label = self.dataset[variable].long_name + " [" +self.dataset[variable].units + "]", size=14, fontweight="bold",labelpad=15)
+        cbar.set_label(label = self.dataset[variable].long_name + " [" +self.dataset[variable].units + "]", size = 12, fontweight="bold",labelpad=15)
 
         cbar.outline.set_color('black')
         cbar.outline.set_linewidth(2)
@@ -898,9 +896,9 @@ class wavebreaking(object):
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
         
-        if label == True:
+        if labels == True:
             gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
-            gr.xlabel_style = {'size': 14, 'color': 'black', "rotation":0}
+            gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
             gr.ylabel_style = {'size': 12, 'color': 'black'}
         
         if proj == ccrs.NorthPolarStereo():
@@ -911,8 +909,6 @@ class wavebreaking(object):
             ax.set_boundary(circle, transform=ax.transAxes)
             ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
             
-        title = ""
-        if "title" in kwargs: title = kwargs.get("title")
         ax.set_title(title, fontweight='bold',fontsize=20)
         
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
