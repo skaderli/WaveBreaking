@@ -801,6 +801,12 @@ class wavebreaking(object):
         for item in combine:
             events.loc[item, "label"]= min(item)
             
+        label = events.label.copy()
+        for i in np.arange(len(set(events.label))):
+            label[events.label == sorted(set(events.label))[i]] = i
+            
+        events.label = label
+            
         self.labeled_events = events
         
     def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
@@ -873,7 +879,7 @@ class wavebreaking(object):
         ax.set_title(title, fontweight='bold',fontsize=20)
         
     
-    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(), periodic = True, levels = None, labels = True, cmap = None, title = ""):
+    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(), levels = None, labels = True, cmap = None, title = ""):
         
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
@@ -938,6 +944,66 @@ class wavebreaking(object):
         ax.set_title(title, fontweight='bold',fontsize=20)
         
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
+        
+        
+    def plot_tracks(self, events, proj = ccrs.PlateCarree(), title = "", labels = True, min_path = 0):
+    
+        if "label" not in events.columns:
+            errmsg = 'No tracked events detected. Plase track events first.'
+            raise ValueError(errmsg)
+            
+        data_crs = ccrs.PlateCarree()
+        proj = proj
+
+        fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
+        
+        for name, group in events.groupby("label"):
+            if len(group)>min_path:
+                
+                lons = np.asarray(group.com.tolist())[:,1]
+                lats = np.asarray(group.com.tolist())[:,0]
+
+                ax.plot(lons, lats, "-", transform=data_crs, color = "black")
+                ax.scatter(lons[0],lats[0], s=14, zorder=10,facecolors='none', edgecolor='black', transform=data_crs)
+                ax.plot(lons[0], lats[0], ".", color = "red", transform=data_crs, alpha =0.7)
+                """
+                else:
+                    cut = np.where(np.diff(lons)<0)[0][0]+1
+                    max_lon = max(wb.dataset.lon.values)
+                    min_lon = min(wb.dataset.lon.values)
+                    seg1 = max(wb.dataset.lon.values)-lons[cut-1]
+                    seg2 = lons[cut]-min(wb.dataset.lon.values)
+                    m = (lats[cut]-lats[cut-1])/(seg1+seg2+1)
+
+                    lon_segs = [lons[:cut]+[max_lon+1], [min_lon]+lons[cut:]]
+                    lat_segs = [lats[:cut]+[lats[cut-1]+(seg1+1)*m], [lats[cut-1]+(seg1+1)*m]+lats[cut:]]
+                    for lon, lat in zip(lon_segs, lat_segs):
+                        ax.plot(lon, lat, "-", transform=data_crs, color = "black")
+                    ax.scatter(lon_segs[0][0],lat_segs[0][0], s=14, zorder=10,facecolors='none', edgecolor='black', transform=data_crs)
+                    ax.plot(lon_segs[0][0], lat_segs[0][0], ".", color = "red", transform=data_crs, alpha =0.7)
+                """
+                    
+        p = self.dataset.weight.plot.contourf(ax=ax, transform=data_crs, add_colorbar = False, alpha =0)
+
+        ax.add_feature(cfeature.COASTLINE, color="dimgrey")
+        gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
+
+        if labels == True:
+            gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
+            gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
+            gr.ylabel_style = {'size': 12, 'color': 'black'}
+
+        if proj == ccrs.NorthPolarStereo():
+            theta = np.linspace(0, 2*np.pi, 100)
+            center, radius = [0.5, 0.5], 0.5
+            verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+            circle = mpath.Path(verts * radius + center)
+            ax.set_boundary(circle, transform=ax.transAxes)
+            ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
+            
+        ax.set_title(title, fontweight='bold',fontsize=20)
+        
+        
         
         
 # ----------------------------------------------------------------------------
