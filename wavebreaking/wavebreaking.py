@@ -496,7 +496,7 @@ class wavebreaking(object):
         
         #return contour coordinates in a DataFrame
         def contour_to_df(lodf):
-            date = pd.to_datetime(str(step.values)).strftime('%Y-%m-%d')
+            date = pd.to_datetime(str(step.values)).strftime('%Y-%m-%dT%H')
             x_exp = [item.iloc[:,1].max() - item.iloc[:,1].min() for item in lodf]
             mean_lat = [item.iloc[:,0].mean() for item in lodf]
 
@@ -774,6 +774,7 @@ class wavebreaking(object):
         events_concat = events.groupby(events.date).apply(lambda s: pd.concat([row.coords for index,row in s.iterrows()])).reset_index().drop("level_1", axis =1)
         self.dataset[name] = xr.zeros_like(xr.DataArray(np.zeros((self.dims[self._time_name],self.dims[self._latitude_name],self.dims[self._longitude_name])), dims = [self._time_name, self._latitude_name, self._longitude_name]))
         self.dataset[name].loc[{self._time_name:events_concat.date.to_xarray(), self._latitude_name:events_concat[self._latitude_name].to_xarray(), self._longitude_name:events_concat[self._longitude_name].to_xarray()}] = np.ones(len(events_concat))
+        self.dataset[name] = self.dataset[name].astype("int8")
         
         logger.info("Variable created: {}".format(name))
         
@@ -807,7 +808,7 @@ class wavebreaking(object):
             
         events.label = label
             
-        self.labeled_events = events
+        self.labeled_events = events.sort_values(by=["label"])
         
     def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
         
