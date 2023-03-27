@@ -22,6 +22,8 @@ The detection of RWB is based on applying a wave breaking index to the dynamical
 
 The tool is designed to analyze gridded data provided as an `xarray.Dataset <https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html>`_. Output is provided either in a `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ or in an `xarray.Dataset <https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html>`_.
 
+The class structure and parts of the tracking routines are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
+
 Important information:
 -----------------
 
