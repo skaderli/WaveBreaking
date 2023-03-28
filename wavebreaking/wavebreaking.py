@@ -778,21 +778,27 @@ class wavebreaking(object):
         
         logger.info("Variable created: {}".format(name))
         
-    def event_tracking(self, events):
+    def event_tracking(self, events, box = False):
         
         if events.empty:
             errmsg = 'Your events DataFrame is empty!'
             raise ValueError(errmsg)
             
         logger.info('Tracking events over time...')
-        dates = [pd.Timestamp(date).strftime('%Y-%m-%d') for date in self.dataset[self._time_name].values]
+        dates = [pd.Timestamp(date).strftime('%Y-%m-%dT%H') for date in self.dataset[self._time_name].values]
         progress = tqdm(range(0,len(dates)-1), leave = True, position = 0)
 
         combine = []
-
-        for i,r in zip(range(0,len(dates)-1), progress):
-            index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
-            combine.append([combination for combination in index_combinations if not set(map(tuple,events.loc[combination[0]].coords.values)).isdisjoint(set(map(tuple,events.loc[combination[1]].coords.values)))])
+        if box == True:
+            
+            boxes = [pd.DataFrame([(y,x) for y,x in itertools.product(set(row.coords.lat), set(row.coords.lon))], columns = ["lat", "lon"]) for index, row in events.iterrows()]
+            for i,r in zip(range(0,len(dates)-1), progress):
+                index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
+                combine.append([combination for combination in index_combinations if not set(map(tuple,boxes[events.index.get_loc(combination[0])].values)).isdisjoint(set(map(tuple,boxes[events.index.get_loc(combination[1])].values)))])
+        else:
+            for i,r in zip(range(0,len(dates)-1), progress):
+                index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
+                combine.append([combination for combination in index_combinations if not set(map(tuple,events.loc[combination[0]].coords.values)).isdisjoint(set(map(tuple,events.loc[combination[1]].coords.values)))])
 
         combine = list(itertools.chain.from_iterable(combine))
         combine = self.combine_shared(combine)
@@ -808,7 +814,7 @@ class wavebreaking(object):
             
         events.label = label
             
-        self.labeled_events = events.sort_values(by=["label"])
+        self.labeled_events = events.sort_values(by=["label", "date"])
         
     def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
         
@@ -947,7 +953,7 @@ class wavebreaking(object):
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
         
         
-    def plot_tracks(self, events, proj = ccrs.PlateCarree(), title = "", labels = True, min_path = 0):
+    def plot_tracks(self, events, proj = ccrs.PlateCarree(), title = "", labels = True, min_path = 0, plot_events = False):
     
         if "label" not in events.columns:
             errmsg = 'No tracked events detected. Plase track events first.'
@@ -967,6 +973,10 @@ class wavebreaking(object):
                 ax.plot(lons, lats, "-", transform=data_crs, color = "black")
                 ax.scatter(lons[0],lats[0], s=14, zorder=10,facecolors='none', edgecolor='black', transform=data_crs)
                 ax.plot(lons[0], lats[0], ".", color = "red", transform=data_crs, alpha =0.7)
+                if plot_events == True:
+                    for index,row in group.iterrows():
+                        ax.plot(row.coords.lon, row.coords.lat, ".", color = "black", transform = data_crs, alpha = 0.3, markersize = 3)
+                
                 """
                 else:
                     cut = np.where(np.diff(lons)<0)[0][0]+1
