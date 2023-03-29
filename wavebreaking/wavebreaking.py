@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 """
 
 Description
 -----------
  
-    add description...
+    This tool provides two indices to detect, classify, and track Rossby Wave Breaking (RWB) in weather and climate data. 
+    The indices are based on the Streamer Index by Wernli and Sprenger (2007) and the Overturning Index by Barnes and Hartmann (2012).
 
 Content
 -------
 
- The following classes are available:
-     
- wavebreaking: To create a wavebreaking object with functions to calculate wave breaking indices.
+    The following classes are available:
+ 
+    wavebreaking: To create a wavebreaking object with functions to calculate wave breaking indices.
  
 Examples
 --------
 
->>> filename = '/path/to/data.nc' 
->>> wb = wavebreaking() 
->>> wb.read_xarray(filename.nc)
+    >>> filename = '/path/to/data.nc' 
+    >>> wb = wavebreaking() 
+    >>> wb.read_xarray(filename.nc)
 
 Author
 --------
 
-@author: severinkaderli (Severin Kaderli; severin.kaderli@unibe.ch)
+    @author: severinkaderli (Severin Kaderli; severin.kaderli@unibe.ch)
 
 """
 
@@ -60,7 +60,6 @@ import matplotlib.colors as colors
 # logs
 import logging
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
 import warnings
@@ -71,9 +70,11 @@ warnings.filterwarnings("ignore")
 # =============================================================================
 
 class wavebreaking(object):
+    
     """
     wavebreaking class
     Author : Severin Kaderli, University of Bern , 2023
+    Remark : The class structure is based on the ConTrack - Contour Tracking tool developed by Daniel Steinfeld
     """
 
     # number of instances initiated
@@ -123,7 +124,7 @@ class wavebreaking(object):
         except AttributeError:
             # Assume it's an empty Blocking()
             string = "\
-            Empty contrack container.\n\
+            Empty wavebreaking container.\n\
             Hint: use read() to load data."
         return string
 
@@ -186,8 +187,11 @@ class wavebreaking(object):
         """Return the dataset"""
         return self.ds
 
-# ----------------------------------------------------------------------------
+    
+# ============================================================================
 # Read / Import / Save data
+# ============================================================================
+    
     
     def read(self, filename, **kwargs):
         """
@@ -202,7 +206,7 @@ class wavebreaking(object):
             self.ds = xr.open_dataset(filename, **kwargs)
             logger.debug('read: {}'.format(self.__str__))
         else:
-            errmsg = 'contrack() is already set!'
+            errmsg = 'wavebreaking() is already set!'
             raise ValueError(errmsg)
             
     def read_xarray(self, ds):
@@ -223,9 +227,11 @@ class wavebreaking(object):
         else:
             errmsg = 'wavebreaking() is already set!'
             raise ValueError(errmsg)
- 
-# ----------------------------------------------------------------------------
+
+# ============================================================================
 # Set up / Check dimensions
+# ============================================================================
+
    
     def set_up(self,
                time_name=None,
@@ -390,10 +396,32 @@ class wavebreaking(object):
             
         return delta
 
-# ----------------------------------------------------------------------------
-# field processing
+    
+# ============================================================================
+# Pre-processing functions
+# ============================================================================
 
-    def calculate_momentum_flux(self, variable_zonal, variable_meridional):
+
+    def calculate_momentum_flux(self, variable_zonal, variable_meridional, dtime = "1D" ):
+        
+        """
+        Calculate the momentum flux derived from the product of the deviations of both wind components from the zonal mean.
+        
+        Parameters
+        ----------
+            variable_zonal : string
+                vairable name of the zonal wind variable.
+            variable_meridional : string
+                vairable name of the meridional wind variable.
+            dtime : string, optional
+                time period for the calculation of the zonal mean (e.g. "1D", "6H")
+                
+        Returns
+        -------
+            xarray.Dataset: float
+                Dataset containing the variable "mflux"
+        
+        """
 
         if hasattr(self, '_time_name'):
             logger.info("Check dimensions... OK")
@@ -404,8 +432,8 @@ class wavebreaking(object):
 
         logger.info('Calculating momentum flux...')
 
-        dzm_u = self.dataset[variable_zonal].resample({self._time_name:'1D'}).mean(self._longitude_name)
-        dzm_v = self.dataset[variable_meridional].resample({self._time_name:'1D'}).mean(self._longitude_name)
+        dzm_u = self.dataset[variable_zonal].resample({self._time_name:dtime}).mean(self._longitude_name)
+        dzm_v = self.dataset[variable_meridional].resample({self._time_name:dtime}).mean(self._longitude_name)
 
         u_prime = self.dataset[variable_zonal]-dzm_u
         v_prime = self.dataset[variable_meridional]-dzm_v
@@ -417,6 +445,24 @@ class wavebreaking(object):
         
         
     def calculate_smoothed_field(self, variable, passes):
+        
+        """
+        Calculate smoothed field based on a 5-point smoothing with double-weighted centre and multiple smoothing passes.
+        The smoothing routine is based on the wrf.smooth2d function.
+        
+        Parameters
+        ----------
+            variable : string
+                vairable name of the xarray.Dataset varialbe that should be smoothed
+            passes : int or float
+                number of smoothing passes of the 5-point smoothing
+                
+        Returns
+        -------
+            xarray.Dataset: float
+                Dataset containing the the smoothed variable "smooth_variable"
+        
+        """
         
         if hasattr(self, '_time_name'):
             logger.info("Check dimensions... OK")
@@ -434,10 +480,42 @@ class wavebreaking(object):
 
         logger.info("Variable created: '{}'".format(temp.name))
     
-# ----------------------------------------------------------------------------
-# contour calculations
+# ============================================================================
+# contour calculation
+# ============================================================================
+
         
     def get_contours(self, variable, level, periodic_add = 120):
+          
+        """
+        Calculate contour lines of a specific level at every time step. The calculations are based on the measure.find_contours functions.
+        If periodic_add is provided, unclosed contours crossing the border in the longitudinal direction are closed. 
+        
+        Parameters
+        ----------
+            variable : string
+                variable name of the xarray.Dataset whereof the contour lines should be calculated
+            level : int or float
+                level of the contour lines
+            periodic_add: int or float, optional
+                number of longitudes that are added to the dataset to correctly identify contours crossing the longitudinal border
+                if the input field is not periodic, use periodic_add = 0
+                
+        Returns
+        -------
+            pd.DataFrame: DataFrame
+                DataFrame providing different characteristics of the contours accessible at wavebreaking.contours
+                    "date": date of the contour line in time steps of the original variable
+                    "coordinates": coordinate points of the contour line (segement)
+                    "level": level of the contour lines
+                    "exp_lon": expansion of the contour line (segment) in the longitudinal direction
+                    "mean_lat": mean latitude of the coordinates of a contour line (segment)
+                    
+                Information:
+                The contours are mapped on the original grid of the variable. 
+                The extended contours (if periodic_add > 0) used for the index calculation are accessible at wavebreaking._contours_wb_calc
+        
+        """
   
         if hasattr(self, '_time_name'):
             logger.info("Check dimensions... OK")
@@ -450,30 +528,39 @@ class wavebreaking(object):
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
-        contours = [self.get_contour_timestep(step, level=level, variable=variable, periodic_add=periodic_add) for step,p in zip(times,progress)]
+        #store contour parameters
+        self._periodic_add = periodic_add
+        self._contour_level = level
+        self._contour_variable = variable
+        
+        
+        contours = [self.get_contour_timestep(step) for step,p in zip(times,progress)]
         
         self.contours = pd.concat([item[0] for item in contours]).reset_index(drop=True)
         
         contours_wb_calc = pd.concat([item[1] for item in contours])
-        self._contours_wb_calc = contours_wb_calc[contours_wb_calc.exp == contours_wb_calc.exp.max()].reset_index(drop=True)
+        self._contours_wb_calc = contours_wb_calc[contours_wb_calc.exp_lon == contours_wb_calc.exp_lon.max()].reset_index(drop=True)
         
         logger.info('{} contour(s) identified!'.format(len(self.contours)))
         
-    def get_contour_timestep(self, step, variable, level, periodic_add):
+    def get_contour_timestep(self, step):
+        """
+            Calculate contour lines for one time step.
+        """
 
         #define data
-        ds = self.dataset.sel({self._time_name:step})[variable]
+        ds = self.dataset.sel({self._time_name:step})[self._contour_variable]
         #expand field for periodicity
-        ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,periodic_add)})], dim=self._longitude_name)
+        ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
 
         #get contours (indices in array coordinates)
-        contours_from_measure = measure.find_contours(ds.values, level)
+        contours_from_measure = measure.find_contours(ds.values, self._contour_level)
 
         #contours for wave breaking calculation
-        contours_index_expanded = [pd.DataFrame(list(dict.fromkeys(map(tuple,np.round(item).astype("int")))), columns=["y", "x"]) for item in contours_from_measure]
+        contours_index_expanded = [np.asarray(list(dict.fromkeys(map(tuple,np.round(item).astype("int"))))) for item in contours_from_measure]
 
         #original contours for output
-        contours_index_original = [np.c_[item.y.values%self.dims[self._latitude_name], item.x.values%self.dims[self._longitude_name]] for item in contours_index_expanded]
+        contours_index_original = [np.c_[item[:,0]%self.dims[self._latitude_name], item[:,1]%self.dims[self._longitude_name]] for item in contours_index_expanded]
         contours_index_original =  [list(dict.fromkeys(map(tuple,item))) for item in contours_index_original]
         
         index = np.arange(0,len(contours_index_original))
@@ -490,44 +577,72 @@ class wavebreaking(object):
 
         contours_index_original = [np.asarray(contours_index_original[i]) for i in index if i not in drop]
         
-        contour_coords_original = [pd.DataFrame(np.c_[self.dataset[self._latitude_name].values[item[:,0].astype("int")], 
-                                                      self.dataset[self._longitude_name].values[item[:,1].astype("int")]], 
-                                                columns = [self._latitude_name, self._longitude_name]) for item in contours_index_original]
+        contour_coords_original = [np.c_[self.dataset[self._latitude_name].values[item[:,0].astype("int")], 
+                                                      self.dataset[self._longitude_name].values[item[:,1].astype("int")]] for item in contours_index_original]
         
         #return contour coordinates in a DataFrame
-        def contour_to_df(lodf):
+        def contour_to_df(list_of_arrays):
+            """
+                Calculate the different characteristics of the contour line.
+            """
             date = pd.to_datetime(str(step.values)).strftime('%Y-%m-%dT%H')
-            x_exp = [item.iloc[:,1].max() - item.iloc[:,1].min() for item in lodf]
-            mean_lat = [item.iloc[:,0].mean() for item in lodf]
+            exp_lon = [len(set(item[:,1])) for item in list_of_arrays]
+            mean_lat = [np.round(item[:,0].mean(),2) for item in list_of_arrays]
+            coords = [list(map(tuple,item)) for item in list_of_arrays]
 
-            return pd.DataFrame([{"date":date, "coords":c, "level":level, "exp":x, "mean_lat":m} for c,x,m in zip(lodf, x_exp, mean_lat) if len(c)>1])
+            return pd.DataFrame([{"date":date, "coordinates":c, "level":self._contour_level, "exp_lon":x, "mean_lat":m} for c,x,m in zip(coords, exp_lon, mean_lat) if len(c)>1])
 
         return contour_to_df(contour_coords_original), contour_to_df(contours_index_expanded)
 
+        
+# ============================================================================
+# index calculations    
+# ============================================================================
+        
     
+    def get_streamers(self, geo_dis = 800, cont_dis = 1500):
         
-# ----------------------------------------------------------------------------
-# index calculations        
+        """
+        Identify streamer structures based on the Streamer Index developed by Wernli and Sprenger (2007). 
+        The streamer calculation is based on the contour lines from wb.get_contours accessible at wavebreaking._contours_wb_calc.
+        The default parameters for the streamer identification are based on the study by Wernli and Sprenger (2007).
         
-    def get_streamers(self, variable, level, geo_dis = 800, cont_dis = 1500, periodic_add = 120):
+        Parameters
+        ----------
+            geo_dis : int or float, optional
+                Maximal geographic distance between two contour points that describe a streamer
+            cont_dis : int or float, optional
+                Minimal distance along the contour line between two contour points that describe a streamer
+                
+        Returns
+        -------
+            pd.DataFrame: DataFrame
+                DataFrame providing different characteristics of the streamers accessible at wavebreaking.streamers
+                    "date": date of the streamer in time steps of the original variable
+                    "coordinates": coordinate points of the grid cells representing the streamer in the format (y,x)
+                    "mean_var": mean of the variable used for the contour calculation over all streamer grid cell
+                    "area": area of a streamer
+                    "intensity": sum of the intensity (momentum flux) over all streamer grid cells weighted with the corresponding area
+                    "com": center of mass of a streamer in the format (y,x)
+                    
+                Remark:
+                The contours are mapped on the original grid of the variable. 
+                The extended contours (if periodic_add > 0) used for the index calculation are accessible at wavebreaking._contours_wb_calc
+        
+        """
         
         if hasattr(self, '_contours_wb_calc'):
-            if self._contours_wb_calc.level.iloc[0] == level:
-                logger.info("Check contours... OK")
-                pass
-            else:
-                logger.info("Check contours... Available contours are on a different level! Calculating new contours...")
-                self.get_contours(variable=variable, level=level, periodic_add = periodic_add)
+            logger.info("Check contours... OK")
+            pass
         else:
-            logger.info("Check contours... No contours found! Calculating contours...")
-            self.get_contours(variable = variable, level=level, periodic_add = periodic_add)
+            errmsg = "Check contours... No contours found! Calculate contours first using wavebreaking.get_contours()"
+            raise ValueError(errmsg)
             
         if "mflux" in self.variables:
             logger.info("Momentum flux variable detected. Intensity will be calculated.")
         else:
             logger.info("No momentum flux detected. Intensity will not be calculated.")
        
-             
         # create variable "weight" representing the weight of each grid cell
         weight_lat = np.cos(self.dataset[self._latitude_name].values*np.pi/180)
         self.dataset["weight"] = xr.DataArray(np.ones((self.dims[self._latitude_name], self.dims[self._longitude_name])) * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None], dims = [self._latitude_name, self._longitude_name])
@@ -536,14 +651,16 @@ class wavebreaking(object):
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
-        self.streamers = pd.concat([self.get_streamers_timestep(row, variable, geo_dis, cont_dis, periodic_add) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
+        self.streamers = pd.concat([self.get_streamers_timestep(row, geo_dis, cont_dis) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} streamer(s) identified!'.format(len(self.streamers)))
         
-    def get_streamers_timestep(self, contour, variable, geo_dis, cont_dis, periodic_add):
-        
+    def get_streamers_timestep(self, contour, geo_dis, cont_dis):
+        """
+            Calculate streamers for one time step. 
+        """
         #In a first step, calculate all possible basepoints    
-        df_contour = contour.coords
+        df_contour = pd.DataFrame(contour.coordinates, columns = ["y", "x"])
         contour_line = LineString([Point(row.x, row.y) for index, row in df_contour.iterrows()]) 
 
         #calculate geographic distance between all contour coordinates
@@ -566,6 +683,9 @@ class wavebreaking(object):
 
         #In second step, several routines are applied to reduce the number of basepoints
         def check_duplicates(df):
+            """
+                Check if there are basepoint duplicates due to the periodic expansion in the longitudinal direction
+            """
             temp = pd.concat([df.y1, df.x1%self.dims[self._longitude_name], df.y2, df.x2%self.dims[self._longitude_name]], axis = 1)
             temp = temp[temp.duplicated(keep=False)]
             if len(temp) == 0:
@@ -576,14 +696,18 @@ class wavebreaking(object):
             return df.drop(check)
 
         def check_intersections(df):
-            #check for intersections with the contour line 
+            """
+                Check for intersections of the basepoints with the contour line 
+            """
             df["dline"] = [LineString([(row.x1, row.y1),(row.x2, row.y2)]) for index, row in df.iterrows()]
             check_intersections = [row.dline.touches(contour_line) for index, row in df.iterrows()]
 
             return df[check_intersections]
 
         def check_overlapping(df):
-            #check for overlapping of the contour segment described by basepoints
+            """
+                Check for overlapping of the contour segments each described by basepoints
+            """
             ranges = [range(int(r2.ind1),int(r2.ind2+1)) for i2,r2 in df.iterrows()]
             index_combinations = list(itertools.permutations(df.index, r=2))
             check_overlapping = set([item[0] for item in index_combinations if (ranges[item[0]][0] in ranges[item[1]] and ranges[item[0]][-1] in ranges[item[1]])])
@@ -591,6 +715,9 @@ class wavebreaking(object):
             return df.drop(check_overlapping)
 
         def check_groups(df):
+            """
+                Check if there are still several basepoints describing the same streamer
+            """
             index_combinations = np.asarray(list(itertools.combinations_with_replacement(df.index, r=2)))
             check_crossing = [df.iloc[item[0]].dline.intersects(df.iloc[item[1]].dline) for item in index_combinations]
 
@@ -612,27 +739,56 @@ class wavebreaking(object):
             return pd.DataFrame([])
         else:
             def bp_to_grid(df):
-                x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+periodic_add), np.arange(0,self.dims[self._latitude_name]))
+                """
+                    Extract all grid cells that are enclosed by the path of a streamer
+                """
+                x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+self._periodic_add), np.arange(0,self.dims[self._latitude_name]))
                 x, y = x.flatten(), y.flatten()
                 mask = shapely.vectorized.contains(Polygon(df_contour[int(df.ind1):int(df.ind2)+1]),y,x)
+                
                 return np.r_[df_contour[int(df.ind1):int(df.ind2)+1].values, np.c_[y,x][mask]]
 
-
         streamer_grids = [pd.DataFrame(bp_to_grid(row), columns = ["y", "x"])  for index,row in df_bp.iterrows()]
-        return self.get_events(contour.date, streamer_grids, variable, periodic_add)
+        return self.get_events(contour.date, streamer_grids)
     
-    def get_overturnings(self, variable, level, periodic_add = 120):
+    def get_overturnings(self, range_group = 500, min_exp = 5):
+        
+        """
+        Identify overturning structures based on the Overturning Index developed by Barnes and Hartmann (2012). 
+        The overturning calculation is based on the contour lines from wb.get_contours() accessible at wavebreaking._contours_wb_calc
+        The default parameters for the overturning identification are based on the study by Barnes and Hartmann (2012).
+        The overturning region is represented by a rectangle enclosing all overturing contour points
+        
+        Parameters
+        ----------
+            range_group : int or float, optional
+                Maximal distance in which two overturning events are grouped
+            min_exp : int or float, optional
+                Minimal longitudinal expansion of an overturning event
+                
+        Returns
+        -------
+            pd.DataFrame: DataFrame
+                DataFrame providing different characteristics of the overturning event accessible at wavebreaking.overturnings
+                    "date": date of the overturning in time steps of the original variable
+                    "coordinates": coordinate points of the grid cells representing the overturning event in the format (y,x)
+                    "mean_var": mean of the variable used for the contour calculation over all streamer grid cell
+                    "area": area of an overturning event
+                    "intensity": sum of the intensity (momentum flux) over all overturning grid cells weighted with the corresponding area
+                    "com": center of mass of an overturning event in the format (y,x)
+                    
+                Remark:
+                The contours are mapped on the original grid of the variable. 
+                The extended contours (if periodic_add > 0) used for the index calculation are accessible at wavebreaking._contours_wb_calc
+        
+        """
         
         if hasattr(self, '_contours_wb_calc'):
-            if self._contours_wb_calc.level.iloc[0] == level:
-                logger.info("Check contours... OK")
-                pass
-            else:
-                logger.info("Check contours... Available contours are on a different level! Calculating new contours...")
-                self.get_contours(variable=variable, level=level, periodic_add = periodic_add)
+            logger.info("Check contours... OK")
+            pass
         else:
-            logger.info("Check contours... No contours found! Calculating contours...")
-            self.get_contours(variable = variable, level=level, periodic_add = periodic_add)
+            errmsg = "Check contours... No contours found! Calculate contours first using wavebreaking.get_contours()"
+            raise ValueError(errmsg)
             
         if "mflux" in self.variables:
             logger.info("Momentum flux variable detected. Intensity will be calculated.")
@@ -648,14 +804,16 @@ class wavebreaking(object):
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
-        self.overturnings = pd.concat([self.get_overturnings_timestep(row, variable, periodic_add) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
+        self.overturnings = pd.concat([self.get_overturnings_timestep(row, range_group, min_exp) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} overturning event(s) identified!'.format(len(self.overturnings)))
     
-    def get_overturnings_timestep(self, contour, variable, periodic_add):
-        
+    def get_overturnings_timestep(self, contour, range_group, min_exp):
+        """
+            Calculate overturning events for one time step. 
+        """
         #In a first step, calculate all overturning longitudes 
-        df_contour = contour.coords   
+        df_contour = pd.DataFrame(contour.coordinates, columns = ["y", "x"])  
         lons, counts = np.unique(df_contour.x, return_counts = True)
 
         ot_lons = lons[counts >= 3]
@@ -667,6 +825,9 @@ class wavebreaking(object):
         #In second step, several routines are applied to reduce the number of events
 
         def check_duplicates(df):
+            """
+                Check if there are overturning longitude duplicates due to the periodic expansion in the longitudinal direction
+            """
             temp = pd.concat([df.y1, df.x1%self.dims[self._longitude_name], df.y2, df.x2%self.dims[self._longitude_name]], axis = 1)
             temp = temp[temp.duplicated(keep=False)]
             if len(temp) == 0:
@@ -677,7 +838,9 @@ class wavebreaking(object):
             return df.drop(check)
 
         def check_joining(df):
-            #check for overlapping of the contour segment described by basepoints
+            """
+                Check for overlapping of the contour segment described by overturning longitudes
+            """
             ranges = [range(int(r2.ind1),int(r2.ind2)+1) for i2,r2 in df.iterrows()]
             index_combinations = np.asarray(list(itertools.combinations_with_replacement(df.index, r=2)))
             check_join = [not elem for elem in [set(ranges[item[0]]).isdisjoint(ranges[item[1]]) for item in index_combinations]]
@@ -691,8 +854,11 @@ class wavebreaking(object):
             return ret
 
         def check_distance(df):
+            """
+                Combine overturning events if they are closer than range_group
+            """
             geo_matrix = np.triu((dist.pairwise(np.radians(df.loc[:,['y2','x2']]), np.radians(df.loc[:,['y1','x1']]))*6371))
-            indices_check_dis = [(i,j) for i,j in itertools.combinations_with_replacement(df.index, r=2) if geo_matrix[i,j] < 500]
+            indices_check_dis = [(i,j) for i,j in itertools.combinations_with_replacement(df.index, r=2) if geo_matrix[i,j] < range_group]
 
             groups = self.combine_shared(indices_check_dis+[(i,i) for i in df.index])
 
@@ -703,7 +869,10 @@ class wavebreaking(object):
             return ret
 
         def check_expansion(df):
-            check_exp = [(max(df_contour[int(row.ind1):int(row.ind2)+1].x) - min(df_contour[int(row.ind1):int(row.ind2)+1].x)) > 5 for index,row in df.iterrows()]
+            """
+                Drop overturning events that don't have a longitudinal expansion larger than min_exp
+            """
+            check_exp = [(max(df_contour[int(row.ind1):int(row.ind2)+1].x) - min(df_contour[int(row.ind1):int(row.ind2)+1].x)) > min_exp for index,row in df.iterrows()]
             return df[check_exp]
 
         routines = [check_duplicates, check_joining, check_distance, check_expansion]
@@ -720,50 +889,79 @@ class wavebreaking(object):
             return pd.DataFrame([])
         else:
             def ot_to_grid(df):
+                """
+                     Get all grid cells that are enclosed by the rectangle describing an overturning event
+                """
                 temp = df_contour[int(df.ind1):int(df.ind2)+1]
                 x, y = np.meshgrid(range(int(min(temp.x)), int(max(temp.x))+1),range(int(min(temp.y)), int(max(temp.y))+1)) 
                 x, y = x.flatten(), y.flatten()
                 return np.vstack((y,x)).T 
             
         overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"])  for index,row in df_ot.iterrows()]
-        return self.get_events(contour.date, overturnings_grids, variable, periodic_add)
+        return self.get_events(contour.date, overturnings_grids)
         
-    def get_events(self, date, lodf, variable, periodic_add):
-        
+    def get_events(self, date, lodf):
+        """
+            This is an internal function to calculate several properties of the identified events.
+        """
         def event_properties(df):
+            """
+                Calculate properties for each event.
+            """
             
             ds = self.dataset.sel({self._time_name:date})
-            ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,periodic_add)})], dim=self._longitude_name)
+            ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
 
             temp = ds.isel({self._latitude_name:df.y.to_xarray(), self._longitude_name:df.x.to_xarray()})
             area = np.round(np.sum(temp.weight.values),2)
-            mean_var = np.round(np.average(temp[variable].values),2)
-            com = np.round(np.sum(df.multiply((temp.weight*temp[variable]).values, axis = 0), axis = 0)/sum((temp.weight*temp[variable]).values),2)
+            mean_var = np.round(np.average(temp[self._contour_variable].values),2)
+            com = np.round(np.sum(df.multiply((temp.weight*temp[self._contour_variable]).values, axis = 0), axis = 0)/sum((temp.weight*temp[self._contour_variable]).values),2)
             
             df.x = self.dataset[self._longitude_name].values[df.x.values.astype("int")%self.dims[self._longitude_name]]
             df.y = self.dataset[self._latitude_name].values[df.y.values.astype("int")%self.dims[self._latitude_name]]
-            df = df.rename(columns = {"x":self._longitude_name, "y":self._latitude_name})
+            df_coords = list(map(tuple,df.values))
 
             com[self._longitude_name]  = self.dataset[self._longitude_name].values[(np.round(com.x)%self.dims[self._longitude_name]).astype("int")]
             com[self._latitude_name]  = self.dataset[self._latitude_name].values[(np.round(com.y)%self.dims[self._latitude_name]).astype("int")]
 
             if "mflux" in self.variables:
                 intensity = np.round(np.sum((temp.weight*temp["mflux"]).values)/area,2)
-                return [df, mean_var, area, intensity, (com[self._latitude_name] ,com[self._longitude_name])]
+                return [df_coords, mean_var, area, intensity, (com[self._latitude_name] ,com[self._longitude_name])]
             else:
-                return [df, mean_var, area, (com[self._latitude_name] ,com[self._longitude_name])]
+                return [df_coords, mean_var, area, (com[self._latitude_name] ,com[self._longitude_name])]
 
         properties = [event_properties(item) for item in lodf]
 
         if "mflux" in self.variables:
-            return pd.DataFrame([{"date":date, "coords":item[0], "mean_var":item[1], "area":item[2], "intensity":item[3], "com":item[4]} for item in properties])
+            return pd.DataFrame([{"date":date, "coordinates":item[0], "mean_var":item[1], "area":item[2], "intensity":item[3], "com":item[4]} for item in properties])
         else:
-            return pd.DataFrame([{"date":date, "coords":item[0], "mean_var":item[1], "area":item[2], "com":item[3]} for item in properties])
+            return pd.DataFrame([{"date":date, "coordinates":item[0], "mean_var":item[1], "area":item[2], "com":item[3]} for item in properties])
         
-# ----------------------------------------------------------------------------
-# post-processing and plotting functions
+        
+# ============================================================================
+# post-processing functions
+# ============================================================================
+
 
     def to_xarray(self, events, name = "flag"):
+        
+        """
+        Create xarray.Dataset from events stored in a xarray.DataFrame
+        Grid cells where an event is present are flagged with the value 1
+        
+        Parameters
+        ----------
+            events : pd.DataFrame
+                DataFrame with the date and coordinates for every identified event
+            name : string
+                name of the xarray variable that is created
+                
+        Returns
+        -------
+            xarray.Dataset: int
+                Dataset where the coordinates of the events are flagged with the value 1
+        
+        """
         
         logger.info('Creating xarray variable...')
         
@@ -771,7 +969,7 @@ class wavebreaking(object):
             errmsg = 'Your events DataFrame is empty!'
             raise ValueError(errmsg)
         
-        events_concat = events.groupby(events.date).apply(lambda s: pd.concat([row.coords for index,row in s.iterrows()])).reset_index().drop("level_1", axis =1)
+        events_concat = events.groupby(events.date).apply(lambda s: pd.concat([pd.DataFrame(row.coordinates, columns = ["lat", "lon"]) for index,row in s.iterrows()])).reset_index().drop("level_1", axis =1)
         self.dataset[name] = xr.zeros_like(xr.DataArray(np.zeros((self.dims[self._time_name],self.dims[self._latitude_name],self.dims[self._longitude_name])), dims = [self._time_name, self._latitude_name, self._longitude_name]))
         self.dataset[name].loc[{self._time_name:events_concat.date.to_xarray(), self._latitude_name:events_concat[self._latitude_name].to_xarray(), self._longitude_name:events_concat[self._longitude_name].to_xarray()}] = np.ones(len(events_concat))
         self.dataset[name] = self.dataset[name].astype("int8")
@@ -779,6 +977,24 @@ class wavebreaking(object):
         logger.info("Variable created: {}".format(name))
         
     def event_tracking(self, events, box = False):
+        
+        """
+        Temporal tracking of events. 
+        Events receive the same label if an event at step t spacially overlaps with an event at step t-1.
+        
+        Parameters
+        ----------
+            events : pd.DataFrame
+                DataFrame with the date and coordinates for every identified event
+            box : bool, optional
+                If True, a rectangular box is used for the temporal tracking
+                
+        Returns
+        -------
+            xarray.Dataset: int
+                Dataset where the coordinates of the events are flagged with the value 1
+        
+        """
         
         if events.empty:
             errmsg = 'Your events DataFrame is empty!'
@@ -790,7 +1006,6 @@ class wavebreaking(object):
 
         combine = []
         if box == True:
-            
             boxes = [pd.DataFrame([(y,x) for y,x in itertools.product(set(row.coords.lat), set(row.coords.lon))], columns = ["lat", "lon"]) for index, row in events.iterrows()]
             for i,r in zip(range(0,len(dates)-1), progress):
                 index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
@@ -816,7 +1031,44 @@ class wavebreaking(object):
             
         self.labeled_events = events.sort_values(by=["label", "date"])
         
+        
+# ============================================================================
+# plotting functions
+# ============================================================================
+        
+    
     def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
+        
+        """
+        Creates a simple climatological plot showing the occurrence frequency of the detected events. 
+        
+        Parameters
+        ----------
+            variable: string
+                name of the xarray.Dataset variable containing the locations of the events flagged with the value 1
+            seasons: list or array, optional
+                months of the seasons of which the occurrence frequency should be calculated (e.g. [11,12,1])
+            proj: cartopy.crs projection, optional
+                Cartopy projection
+            smooth_passes: int or float, optional
+                number of smoothing passes of the 5-point smoothing of the occurrence frequencies
+            periodic: bool, optional
+                If True, the first longitude is added at the end to close the gap in a polar projection
+            labels: bool, optional
+                If False, no labels are added to the plot
+            levels: list or array, optional
+                Colorbar levles. If not provided, default levels are used.
+            cmap: string, optional
+                Name of a valid cmap. If not provided, a default cmap is used. 
+            title: string, optional
+                Title of the plot
+                
+        Returns
+        -------
+            matplotlib.pyplot:
+                Climatological plot of the occurrence frequencies.
+        
+        """
         
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
@@ -886,7 +1138,38 @@ class wavebreaking(object):
         ax.set_title(title, fontweight='bold',fontsize=20)
         
     
-    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(), levels = None, labels = True, cmap = None, title = ""):
+    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(),labels = True, levels = None, cmap = None, title = ""):
+        
+        """
+        Creates a plot showing the events on one time step.
+        
+        Parameters
+        ----------
+            flag_variable: string
+                name of the xarray.Dataset variable containing the locations of the events flagged with the value 1
+            variable: string
+                name of the xarray.Dataset variable that has been used to calculate the contours
+            step: int or string
+                index or name of a time step in the xarray.Dataset
+            contour_level: list
+                list of contour levels that are shown in the plot
+            proj: cartopy.crs projection, optional
+                Cartopy projection
+            labels: bool, optional
+                If False, no labels are added to the plot
+            levels: list or array, optional
+                Colorbar levles. If not provided, default levels are used.
+            cmap: string, optional
+                Name of a valid cmap. If not provided, a default cmap is used. 
+            title: string, optional
+                Title of the plot
+                
+        Returns
+        -------
+            matplotlib.pyplot:
+                Plot of one time step.
+        
+        """
         
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
@@ -953,7 +1236,32 @@ class wavebreaking(object):
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
         
         
-    def plot_tracks(self, events, proj = ccrs.PlateCarree(), title = "", labels = True, min_path = 0, plot_events = False):
+    def plot_tracks(self, events, proj = ccrs.PlateCarree(), labels = True, min_path = 0, plot_events = False, title = ""):
+        
+        """
+        Creates a plot showing the tracks of the temporally tracked events. 
+        
+        Parameters
+        ----------
+            events: pd.DataFrame
+                DataFrame with the date, coordinates and label of every identified event
+            proj: cartopy.crs projection, optional
+                Cartopy projection
+            labels: bool, optional
+                If False, no labels are added to the plot
+            min_path: int, optional
+                Minimal number of time steps an event has to be tracked
+            plot_events: bool, optional
+                If True, the events are also plotted by a shaded area
+            title: string, optional
+                Title of the plot
+                
+        Returns
+        -------
+            matplotlib.pyplot: 
+                Plot of the tracks
+        
+        """
     
         if "label" not in events.columns:
             errmsg = 'No tracked events detected. Plase track events first.'
@@ -1015,30 +1323,49 @@ class wavebreaking(object):
         ax.set_title(title, fontweight='bold',fontsize=20)
         
         
-        
-        
-# ----------------------------------------------------------------------------
+# ============================================================================
 # utility functions
+# ============================================================================
+    
     
     def combine_shared(self,lst):
-         l = lst
-         output = []
-         while len(l)>0:
-             first, *rest = l
-             first = set(first)
+        
+        """
+        This is an internal function that combines all elements of a list that have at least one element in common.  
+        
+        Parameters
+        ----------
+            lst : list
+                list of integer or float values
+                
+        Returns
+        -------
+            list: int or float
+                list of combined elements
+        
+        """
+        
+        l = lst
+        output = []
+        while len(l)>0:
+            first, *rest = l
+            first = set(first)
 
-             lf = -1
-             while len(first)>lf:
-                 lf = len(first)
+            lf = -1
+            while len(first)>lf:
+                lf = len(first)
 
-                 rest2 = []
-                 for r in rest:
-                     if len(first.intersection(set(r)))>0:
-                         first |= set(r)
-                     else:
-                         rest2.append(r)     
-                 rest = rest2
+                rest2 = []
+                for r in rest:
+                    if len(first.intersection(set(r)))>0:
+                        first |= set(r)
+                    else:
+                        rest2.append(r)     
+                rest = rest2
 
-             output.append(list(first))
-             l = rest
-         return output
+            output.append(list(first))
+            l = rest
+            
+        return output
+
+# ============================================================================
