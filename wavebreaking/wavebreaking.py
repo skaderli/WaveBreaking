@@ -432,14 +432,16 @@ class wavebreaking(object):
 
         logger.info('Calculating momentum flux...')
 
+        #calculate zonal mean for each time step
         dzm_u = self.dataset[variable_zonal].resample({self._time_name:dtime}).mean(self._longitude_name)
         dzm_v = self.dataset[variable_meridional].resample({self._time_name:dtime}).mean(self._longitude_name)
 
+        #calculate deviation from the zonal mean
         u_prime = self.dataset[variable_zonal]-dzm_u
         v_prime = self.dataset[variable_meridional]-dzm_v
 
-        flux = u_prime*v_prime
-        self.dataset["mflux"] = flux
+        #mflux is given by the product of the deviation of both wind components
+        self.dataset["mflux"] = u_prime*v_prime
 
         logger.info("Variable created: 'mflux'")
         
@@ -473,12 +475,15 @@ class wavebreaking(object):
 
         logger.info('Calculating smoothed field...')
 
+        #create wrap around the field the get a correct smoothing at the borders
         temp = self.dataset[variable].pad({self._longitude_name:5}, mode="wrap")
+        #perform smoothing
         temp = wrf.smooth2d(temp,passes)
-
+        #remove wrap from the smoothed field
         self.dataset[temp.name] = temp.isel({self._longitude_name:slice(5,-5)})
 
         logger.info("Variable created: '{}'".format(temp.name))
+    
     
 # ============================================================================
 # contour calculation
@@ -525,6 +530,8 @@ class wavebreaking(object):
             self.set_up()
         
         logger.info('Calculating contour lines...')
+        
+        #set up progress bar
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
@@ -533,11 +540,13 @@ class wavebreaking(object):
         self._contour_level = level
         self._contour_variable = variable
         
-        
+        #calculate contours for each time step
         contours = [self.get_contour_timestep(step) for step,p in zip(times,progress)]
         
+        #store contours that are mapped on the original grid
         self.contours = pd.concat([item[0] for item in contours]).reset_index(drop=True)
         
+        #store contours that are used for the index calculation
         contours_wb_calc = pd.concat([item[1] for item in contours])
         self._contours_wb_calc = contours_wb_calc[contours_wb_calc.exp_lon == contours_wb_calc.exp_lon.max()].reset_index(drop=True)
         
@@ -548,7 +557,7 @@ class wavebreaking(object):
             Calculate contour lines for one time step.
         """
 
-        #define data
+        #select variable and time step for the contour calculation
         ds = self.dataset.sel({self._time_name:step})[self._contour_variable]
         #expand field for periodicity
         ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
@@ -559,10 +568,11 @@ class wavebreaking(object):
         #contours for wave breaking calculation
         contours_index_expanded = [np.asarray(list(dict.fromkeys(map(tuple,np.round(item).astype("int"))))) for item in contours_from_measure]
 
-        #original contours for output
+        #map in added indices to the original indices of the grid
         contours_index_original = [np.c_[item[:,0]%self.dims[self._latitude_name], item[:,1]%self.dims[self._longitude_name]] for item in contours_index_expanded]
         contours_index_original =  [list(dict.fromkeys(map(tuple,item))) for item in contours_index_original]
         
+        #drop duplicates that have been identified due to the periodicity
         index = np.arange(0,len(contours_index_original))
         index_combination = list(itertools.combinations(index, r=2))
 
@@ -577,10 +587,10 @@ class wavebreaking(object):
 
         contours_index_original = [np.asarray(contours_index_original[i]) for i in index if i not in drop]
         
-        contour_coords_original = [np.c_[self.dataset[self._latitude_name].values[item[:,0].astype("int")], 
-                                                      self.dataset[self._longitude_name].values[item[:,1].astype("int")]] for item in contours_index_original]
+        #select the original coordinates from the indices
+        contour_coords_original = [np.c_[self.dataset[self._latitude_name].values[item[:,0].astype("int")], self.dataset[self._longitude_name].values[item[:,1].astype("int")]] for item in contours_index_original]
         
-        #return contour coordinates in a DataFrame
+        #return contour in a DataFrame and calculate some characteristics
         def contour_to_df(list_of_arrays):
             """
                 Calculate the different characteristics of the contour line.
@@ -643,14 +653,18 @@ class wavebreaking(object):
         else:
             logger.info("No momentum flux detected. Intensity will not be calculated.")
        
-        # create variable "weight" representing the weight of each grid cell
+        #create variable "weight" representing the weighted area of each grid cell
+        #this follows the weights definition used in the ConTrack - Contour Tracking tool developed by Daniel Steinfeld
         weight_lat = np.cos(self.dataset[self._latitude_name].values*np.pi/180)
         self.dataset["weight"] = xr.DataArray(np.ones((self.dims[self._latitude_name], self.dims[self._longitude_name])) * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None], dims = [self._latitude_name, self._longitude_name])
         
         logger.info('Calculating streamers...')
+        
+        #set up progress bar
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
+        #calculate streamers for each time step
         self.streamers = pd.concat([self.get_streamers_timestep(row, geo_dis, cont_dis) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} streamer(s) identified!'.format(len(self.streamers)))
@@ -659,33 +673,37 @@ class wavebreaking(object):
         """
             Calculate streamers for one time step. 
         """
-        #In a first step, calculate all possible basepoints    
+        #calculate all possible basepoints combinations
+        #(1) get coordinates of the contour points
         df_contour = pd.DataFrame(contour.coordinates, columns = ["y", "x"])
         contour_line = LineString([Point(row.x, row.y) for index, row in df_contour.iterrows()]) 
 
-        #calculate geographic distance between all contour coordinates
+        #(2) calculate geographic distance between all contour coordinates
         geo_matrix = np.triu((dist.pairwise((np.radians(df_contour.loc[:,["y", "x"]])))*6371))
 
-        #calculate the connecting distance between all contour coordinates
+        #(3) calculate the distance connecting all combinations of contour points
         on = np.insert(np.diagonal(geo_matrix,1),0,0)
         on_mat = np.triu(np.tile(on,(len(on),1)), k=1)
         cont_matrix = np.cumsum(on_mat, axis = 1)
 
-        #get indices of all contour coordinates that fulfill both conditions
+        #(4) get indices of all contour coordinates that fulfill both conditions
         check = (geo_matrix<geo_dis) * (cont_matrix>cont_dis)
         check = np.transpose(check.nonzero())
 
-        #store all coordinates in a DataFrame
+        #(5) store the coordinates of the point combinations in a DataFrame
         df1 = df_contour[["y","x"]].iloc[check[:,0]].reset_index().rename(columns = {"y":"y1", "x":"x1", "index":"ind1"})
         df2 = df_contour[["y","x"]].iloc[check[:,1]].reset_index().rename(columns = {"y":"y2", "x":"x2", "index":"ind2"})
         df_bp = pd.concat([df1, df2], axis = 1)
+        
+        #(6) drop combinations that are invalid
         df_bp = df_bp.drop(df_bp[np.abs(df_bp.x1-df_bp.x2)>120].index)
 
-        #In second step, several routines are applied to reduce the number of basepoints
+        #apply several routines that neglect invalid basepoints
         def check_duplicates(df):
             """
                 Check if there are basepoint duplicates due to the periodic expansion in the longitudinal direction
             """
+            #drop duplicates after mapping the coordinates to the original grid
             temp = pd.concat([df.y1, df.x1%self.dims[self._longitude_name], df.y2, df.x2%self.dims[self._longitude_name]], axis = 1)
             temp = temp[temp.duplicated(keep=False)]
             if len(temp) == 0:
@@ -699,6 +717,7 @@ class wavebreaking(object):
             """
                 Check for intersections of the basepoints with the contour line 
             """
+            #calculate line connecting each basepoint pair and drop the ones that intersect with the contour line
             df["dline"] = [LineString([(row.x1, row.y1),(row.x2, row.y2)]) for index, row in df.iterrows()]
             check_intersections = [row.dline.touches(contour_line) for index, row in df.iterrows()]
 
@@ -708,6 +727,7 @@ class wavebreaking(object):
             """
                 Check for overlapping of the contour segments each described by basepoints
             """
+            #calculate contour segment for each basepoint pair and drop the pairs that are fully covered by another pair
             ranges = [range(int(r2.ind1),int(r2.ind2+1)) for i2,r2 in df.iterrows()]
             index_combinations = list(itertools.permutations(df.index, r=2))
             check_overlapping = set([item[0] for item in index_combinations if (ranges[item[0]][0] in ranges[item[1]] and ranges[item[0]][-1] in ranges[item[1]])])
@@ -718,6 +738,7 @@ class wavebreaking(object):
             """
                 Check if there are still several basepoints describing the same streamer
             """
+            #group basepoints that describe the same streamer
             index_combinations = np.asarray(list(itertools.combinations_with_replacement(df.index, r=2)))
             check_crossing = [df.iloc[item[0]].dline.intersects(df.iloc[item[1]].dline) for item in index_combinations]
 
@@ -726,6 +747,7 @@ class wavebreaking(object):
 
             return df.iloc[keep_index]
 
+        #apply all four routines and stop if no basepoints are left after a routine
         routines = [check_duplicates, check_intersections, check_overlapping, check_groups]
         i = -1
         while len(df_bp.index) > 1:
@@ -742,14 +764,15 @@ class wavebreaking(object):
                 """
                     Extract all grid cells that are enclosed by the path of a streamer
                 """
+                #map the streamer on the original grid
                 x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+self._periodic_add), np.arange(0,self.dims[self._latitude_name]))
                 x, y = x.flatten(), y.flatten()
                 mask = shapely.vectorized.contains(Polygon(df_contour[int(df.ind1):int(df.ind2)+1]),y,x)
                 
                 return np.r_[df_contour[int(df.ind1):int(df.ind2)+1].values, np.c_[y,x][mask]]
 
-        streamer_grids = [pd.DataFrame(bp_to_grid(row), columns = ["y", "x"])  for index,row in df_bp.iterrows()]
-        return self.get_events(contour.date, streamer_grids)
+            streamer_grids = [pd.DataFrame(bp_to_grid(row), columns = ["y", "x"])  for index,row in df_bp.iterrows()]
+            return self.get_events(contour.date, streamer_grids)
     
     def get_overturnings(self, range_group = 500, min_exp = 5):
         
@@ -795,15 +818,18 @@ class wavebreaking(object):
         else:
             logger.info("No momentum flux detected. Intensity will not be calculated.")
        
-             
-        # create variable "weight" representing the weight of each grid cell
+        #create variable "weight" representing the weighted area of each grid cell
+        #this follows the weights definition used in the ConTrack - Contour Tracking tool developed by Daniel Steinfeld
         weight_lat = np.cos(self.dataset[self._latitude_name].values*np.pi/180)
         self.dataset["weight"] = xr.DataArray(np.ones((self.dims[self._latitude_name], self.dims[self._longitude_name])) * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None], dims = [self._latitude_name, self._longitude_name])
         
         logger.info('Calculating overturning events...')
+        
+        #set up progress bar
         times = self.dataset[self._time_name]
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
+        #calculate overturning events for each time step
         self.overturnings = pd.concat([self.get_overturnings_timestep(row, range_group, min_exp) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} overturning event(s) identified!'.format(len(self.overturnings)))
@@ -812,22 +838,25 @@ class wavebreaking(object):
         """
             Calculate overturning events for one time step. 
         """
-        #In a first step, calculate all overturning longitudes 
+        #calculate all overturning longitudes 
+        #(1) select the contour points and count the longitudes
         df_contour = pd.DataFrame(contour.coordinates, columns = ["y", "x"])  
         lons, counts = np.unique(df_contour.x, return_counts = True)
-
+        
+        #(2) only keep longitudes that appear at least 3 times and extract the first and last contour point at each of these longitudes
         ot_lons = lons[counts >= 3]
         ot_borders = [(df_contour[df_contour.x == lon].index[0], df_contour[df_contour.x == lon].index[-1]) for lon in ot_lons]
 
+        #(3) store date in a DataFrame
         df_ot =  pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
                             item[1],  df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in ot_borders], columns = ["ind1","y1","x1","ind2","y2","x2"])
 
-        #In second step, several routines are applied to reduce the number of events
-
+        #apply several routines to process the overturning events
         def check_duplicates(df):
             """
                 Check if there are overturning longitude duplicates due to the periodic expansion in the longitudinal direction
             """
+            #drop duplicates after mapping the coordinates to the original grid
             temp = pd.concat([df.y1, df.x1%self.dims[self._longitude_name], df.y2, df.x2%self.dims[self._longitude_name]], axis = 1)
             temp = temp[temp.duplicated(keep=False)]
             if len(temp) == 0:
@@ -839,42 +868,42 @@ class wavebreaking(object):
 
         def check_joining(df):
             """
-                Check for overlapping of the contour segment described by overturning longitudes
+                Check for overlapping of the contour segment described by overturning borders
             """
+            #combine overturning longitudes that share contour points in there segment
             ranges = [range(int(r2.ind1),int(r2.ind2)+1) for i2,r2 in df.iterrows()]
             index_combinations = np.asarray(list(itertools.combinations_with_replacement(df.index, r=2)))
             check_join = [not elem for elem in [set(ranges[item[0]]).isdisjoint(ranges[item[1]]) for item in index_combinations]]
 
             groups = self.combine_shared(index_combinations[check_join])
-
             idx = [(df_ot.iloc[item].ind1.min(), df_ot.iloc[item].ind2.max()) for item in groups]
 
-            ret = pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
-                                 item[1], df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in idx], columns = ["ind1","y1","x1","ind2","y2","x2"])
-            return ret
+            return pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
+                                  item[1], df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in idx], columns = ["ind1","y1","x1","ind2","y2","x2"])
 
         def check_distance(df):
             """
                 Combine overturning events if they are closer than range_group
             """
+            #calculate distance on the contour line between the overturning events
             geo_matrix = np.triu((dist.pairwise(np.radians(df.loc[:,['y2','x2']]), np.radians(df.loc[:,['y1','x1']]))*6371))
             indices_check_dis = [(i,j) for i,j in itertools.combinations_with_replacement(df.index, r=2) if geo_matrix[i,j] < range_group]
 
             groups = self.combine_shared(indices_check_dis+[(i,i) for i in df.index])
-
             idx = [(df.iloc[item].ind1.min(), df.iloc[item].ind2.max()) for item in groups]
 
-            ret = pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
-                                 item[1], df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in idx], columns = ["ind1","y1","x1","ind2","y2","x2"])
-            return ret
+            return pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
+                                  item[1], df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in idx], columns = ["ind1","y1","x1","ind2","y2","x2"])
 
         def check_expansion(df):
             """
                 Drop overturning events that don't have a longitudinal expansion larger than min_exp
             """
+            #calculate the longitudinal expansion
             check_exp = [(max(df_contour[int(row.ind1):int(row.ind2)+1].x) - min(df_contour[int(row.ind1):int(row.ind2)+1].x)) > min_exp for index,row in df.iterrows()]
             return df[check_exp]
 
+        #apply all four routines and stop if no overturning events are left after a routine
         routines = [check_duplicates, check_joining, check_distance, check_expansion]
         i = -1
         while len(df_ot.index) > 0:
@@ -892,13 +921,14 @@ class wavebreaking(object):
                 """
                      Get all grid cells that are enclosed by the rectangle describing an overturning event
                 """
+                #map the overturning events on the original grid, represented by a rectangle around the event
                 temp = df_contour[int(df.ind1):int(df.ind2)+1]
                 x, y = np.meshgrid(range(int(min(temp.x)), int(max(temp.x))+1),range(int(min(temp.y)), int(max(temp.y))+1)) 
                 x, y = x.flatten(), y.flatten()
                 return np.vstack((y,x)).T 
             
-        overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"])  for index,row in df_ot.iterrows()]
-        return self.get_events(contour.date, overturnings_grids)
+            overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"])  for index,row in df_ot.iterrows()]
+            return self.get_events(contour.date, overturnings_grids)
         
     def get_events(self, date, lodf):
         """
@@ -908,15 +938,17 @@ class wavebreaking(object):
             """
                 Calculate properties for each event.
             """
-            
+            #select time step and expand field for periodicity
             ds = self.dataset.sel({self._time_name:date})
             ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
 
+            #select grid cells of a specific event and calculate several properties
             temp = ds.isel({self._latitude_name:df.y.to_xarray(), self._longitude_name:df.x.to_xarray()})
             area = np.round(np.sum(temp.weight.values),2)
             mean_var = np.round(np.average(temp[self._contour_variable].values),2)
             com = np.round(np.sum(df.multiply((temp.weight*temp[self._contour_variable]).values, axis = 0), axis = 0)/sum((temp.weight*temp[self._contour_variable]).values),2)
             
+            #map coordinates of the event to the original grid
             df.x = self.dataset[self._longitude_name].values[df.x.values.astype("int")%self.dims[self._longitude_name]]
             df.y = self.dataset[self._latitude_name].values[df.y.values.astype("int")%self.dims[self._latitude_name]]
             df_coords = list(map(tuple,df.values))
@@ -924,12 +956,14 @@ class wavebreaking(object):
             com[self._longitude_name]  = self.dataset[self._longitude_name].values[(np.round(com.x)%self.dims[self._longitude_name]).astype("int")]
             com[self._latitude_name]  = self.dataset[self._latitude_name].values[(np.round(com.y)%self.dims[self._latitude_name]).astype("int")]
 
+            #if "mflux" is provided, calculate the intensity
             if "mflux" in self.variables:
                 intensity = np.round(np.sum((temp.weight*temp["mflux"]).values)/area,2)
                 return [df_coords, mean_var, area, intensity, (com[self._latitude_name] ,com[self._longitude_name])]
             else:
                 return [df_coords, mean_var, area, (com[self._latitude_name] ,com[self._longitude_name])]
 
+        #store properties in a DataFrame
         properties = [event_properties(item) for item in lodf]
 
         if "mflux" in self.variables:
@@ -969,8 +1003,13 @@ class wavebreaking(object):
             errmsg = 'Your events DataFrame is empty!'
             raise ValueError(errmsg)
         
+        #get coordiantes of all events at the same time step
         events_concat = events.groupby(events.date).apply(lambda s: pd.concat([pd.DataFrame(row.coordinates, columns = ["lat", "lon"]) for index,row in s.iterrows()])).reset_index().drop("level_1", axis =1)
+        
+        #create emtpy Dataset with the same dimension as the original Dataset
         self.dataset[name] = xr.zeros_like(xr.DataArray(np.zeros((self.dims[self._time_name],self.dims[self._latitude_name],self.dims[self._longitude_name])), dims = [self._time_name, self._latitude_name, self._longitude_name]))
+        
+        #set coordinates of the events to the value 1
         self.dataset[name].loc[{self._time_name:events_concat.date.to_xarray(), self._latitude_name:events_concat[self._latitude_name].to_xarray(), self._longitude_name:events_concat[self._longitude_name].to_xarray()}] = np.ones(len(events_concat))
         self.dataset[name] = self.dataset[name].astype("int8")
         
@@ -1001,34 +1040,44 @@ class wavebreaking(object):
             raise ValueError(errmsg)
             
         logger.info('Tracking events over time...')
+        
+        #step up progress bar
         dates = [pd.Timestamp(date).strftime('%Y-%m-%dT%H') for date in self.dataset[self._time_name].values]
         progress = tqdm(range(0,len(dates)-1), leave = True, position = 0)
 
         combine = []
         if box == True:
-            boxes = [pd.DataFrame([(y,x) for y,x in itertools.product(set(row.coords.lat), set(row.coords.lon))], columns = ["lat", "lon"]) for index, row in events.iterrows()]
+            #calculate rectengular boxes for each event
+            boxes = [pd.DataFrame([(y,x) for y,x in itertools.product(set(np.asarray(row.coordinates)[:,0]), set(np.asarray(row.coordinates)[:,1]))], columns = ["lat", "lon"]) for index, row in events.iterrows()]
             for i,r in zip(range(0,len(dates)-1), progress):
+                #check if events at step t overlap with events of t-1
                 index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
                 combine.append([combination for combination in index_combinations if not set(map(tuple,boxes[events.index.get_loc(combination[0])].values)).isdisjoint(set(map(tuple,boxes[events.index.get_loc(combination[1])].values)))])
         else:
+            #get coordinates of each event
+            coords = [pd.DataFrame(row.coordinates, columns = ["lat", "lon"]) for index, row in events.iterrows()]
             for i,r in zip(range(0,len(dates)-1), progress):
+                #check if events at step t overlap with events of t-1
                 index_combinations = itertools.combinations(events[events.date.isin(dates[i:i+2])].index, r=2)
-                combine.append([combination for combination in index_combinations if not set(map(tuple,events.loc[combination[0]].coords.values)).isdisjoint(set(map(tuple,events.loc[combination[1]].coords.values)))])
+                combine.append([combination for combination in index_combinations if not set(map(tuple,coords[events.index.get_loc(combination[0])].values)).isdisjoint(set(map(tuple,coords[events.index.get_loc(combination[1])].values)))])
 
+        #combine tracked indices to groups
         combine = list(itertools.chain.from_iterable(combine))
         combine = self.combine_shared(combine)
 
         events["label"] = events.index
 
+        #assign lables to the events
         for item in combine:
             events.loc[item, "label"]= min(item)
             
+        #select smallest possible index number for all events
         label = events.label.copy()
         for i in np.arange(len(set(events.label))):
             label[events.label == sorted(set(events.label))[i]] = i
-            
         events.label = label
             
+        #sort list by label and date
         self.labeled_events = events.sort_values(by=["label", "date"])
         
         
