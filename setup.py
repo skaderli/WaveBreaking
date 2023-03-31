@@ -16,7 +16,7 @@ requirements = ['numpy',
                 'pandas',
                 'scikit-image',
                 'scipy',
-                'tqdm'
+                'tqdm',
                 'wrf-python',
                 'shapely',
                 'scikit-learn',

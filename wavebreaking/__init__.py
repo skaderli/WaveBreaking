@@ -3,3 +3,5 @@
 __author__ = """Severin Kaderli"""
 __email__ = 'severin.kaderli@unibe.ch'
 __version__ = '0.1.0'
+
+from .wavebreaking import wavebreaking  # noqa
