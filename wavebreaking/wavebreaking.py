@@ -1123,30 +1123,36 @@ class wavebreaking(object):
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
             raise ValueError(errmsg)
         
+        #define cartopy projections
         data_crs = ccrs.PlateCarree()
         proj = proj
 
+        #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
 
+        #calculate occurrence frequencies, if provided for seasons
         if seasons is None:
             freq = xr.where(self.dataset[variable]>0,1,0).sum(dim=self._time_name)/self.dims[self._time_name]*100
         else:
             ds_season = self.dataset[variable].sel({self._time_name:self.dataset[self._time_name].dt.month.isin(seasons)})
             freq = xr.where(ds_season>0,1,0).sum(dim=self._time_name)/len(ds_season[self._time_name])*100
 
+        #smooth occurrence frequencies
         if smooth_passes > 0:
             temp = freq.pad({self._longitude_name:5}, mode="wrap")
             temp = wrf.smooth2d(temp,smooth_passes)
             freq = temp.isel({self._longitude_name:slice(5,-5)})
         
+        #add longitude to ensure that is no gap in a periodic field
         if periodic == True:
             freq = xr.concat([freq, freq.isel({self._longitude_name:0}).assign_coords({"lon":freq[self._longitude_name].max()+1})], dim = self._longitude_name)
             
+        #define levels
         if levels is None:
             max_level = np.round(freq.max()*2)/2
             levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
         
-        # define cmap
+        #define cmap
         if cmap is None:
             def truncate_colormap(cmap, minval=0, maxval=1.0, n=100):
                 new_cmap = colors.LinearSegmentedColormap.from_list(
@@ -1155,27 +1161,30 @@ class wavebreaking(object):
                 return new_cmap
             cmap = truncate_colormap(plt.get_cmap("RdYlBu_r"), 0.3, 1)
             
+        #plot frequencies
         p = freq.where(freq>0).plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max")
         
+        #define colorbar
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=12, weight='bold')
         cbar.set_label(label="Occurrence frequency in %",size=12, fontweight="bold",labelpad=15)
-
         cbar.outline.set_color('black')
         cbar.outline.set_linewidth(2)
-
         cbar.dividers.set_color('black')
         cbar.dividers.set_linewidth(2)
         
+        #add coast lines and grid lines
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
         
+        #plot labels
         if labels == True:
             gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
             gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
             gr.ylabel_style = {'size': 12, 'color': 'black'}
         
+        #make a circular cut out for the NorthPolarStereo projection
         if proj == ccrs.NorthPolarStereo():
             theta = np.linspace(0, 2*np.pi, 100)
             center, radius = [0.5, 0.5], 0.5
@@ -1184,6 +1193,7 @@ class wavebreaking(object):
             ax.set_boundary(circle, transform=ax.transAxes)
             ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
             
+        #set title
         ax.set_title(title, fontweight='bold',fontsize=20)
         
     
@@ -1223,7 +1233,8 @@ class wavebreaking(object):
         if variable not in self.variables:
             errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
             raise ValueError(errmsg)
-                        
+           
+        #select date from data
         if (type(step) is str or type(step) is np.datetime64):
             ds = self.dataset.sel({self._time_name:step})
             ds = xr.concat([ds, ds.isel({self._longitude_name:0}).assign_coords({"lon":ds[self._longitude_name].max()+1})], dim = self._longitude_name)
@@ -1237,41 +1248,48 @@ class wavebreaking(object):
                 errmsg = '{} as input for step is not supported! Step must be either an index or an coordinate of your data!'.format(step)
                 raise ValueError(errmsg)                      
 
+        #define cartopy projections        
         data_crs = ccrs.PlateCarree()
         proj = proj
 
+        #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
         
+        #define levels
         if levels is None:
             max_level = np.round(ds[variable].max()*2)/2
             levels = set(np.arange(0, max_level, np.round(max_level/7*2)/2).tolist())
         
+        #define cmap
         if cmap is None:
             cmap = "Blues"
             
+        #plot variable field, contour line and flag_variable
         p = ds[variable].plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max", alpha = 0.8)
         c = ds[variable].plot.contour(ax=ax, levels = np.asarray(contour_level).tolist(),  transform=data_crs, linewidths = 2, colors = "black")
         f = ds[flag_variable].where(ds[flag_variable]>0).plot.contourf(ax=ax, colors = ["white", "gold"], levels = [0,0.5],  transform=data_crs, add_colorbar = False)
 
+        #define colorbar
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=11, weight='bold')
         cbar.set_label(label = self.dataset[variable].long_name + " [" +self.dataset[variable].units + "]", size = 12, fontweight="bold",labelpad=15)
-
         cbar.outline.set_color('black')
         cbar.outline.set_linewidth(2)
-
         cbar.dividers.set_color('black')
         cbar.dividers.set_linewidth(2)
-
+        
+        #add coast lines and grid lines
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
         
+        #plot labels
         if labels == True:
             gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
             gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
             gr.ylabel_style = {'size': 12, 'color': 'black'}
         
+        #make a circular cut out for the NorthPolarStereo projection
         if proj == ccrs.NorthPolarStereo():
             theta = np.linspace(0, 2*np.pi, 100)
             center, radius = [0.5, 0.5], 0.5
@@ -1279,9 +1297,11 @@ class wavebreaking(object):
             circle = mpath.Path(verts * radius + center)
             ax.set_boundary(circle, transform=ax.transAxes)
             ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
-            
+        
+        #set title
         ax.set_title(title, fontweight='bold',fontsize=20)
         
+        #add the date to the figure
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
         
         
@@ -1315,52 +1335,84 @@ class wavebreaking(object):
         if "label" not in events.columns:
             errmsg = 'No tracked events detected. Plase track events first.'
             raise ValueError(errmsg)
-            
+        
+        #define cartopy projections
         data_crs = ccrs.PlateCarree()
         proj = proj
 
+        #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
         
+        #group event data by label and plot each path
         for name, group in events.groupby("label"):
             if len(group)>min_path:
-                
+        
                 lons = np.asarray(group.com.tolist())[:,1]
                 lats = np.asarray(group.com.tolist())[:,0]
-
-                ax.plot(lons, lats, "-", transform=data_crs, color = "black")
+                
+                #plot start point of each path
                 ax.scatter(lons[0],lats[0], s=14, zorder=10,facecolors='none', edgecolor='black', transform=data_crs)
                 ax.plot(lons[0], lats[0], ".", color = "red", transform=data_crs, alpha =0.7)
+                
+                #plot the coordinates of the events
                 if plot_events == True:
                     for index,row in group.iterrows():
-                        ax.plot(row.coords.lon, row.coords.lat, ".", color = "black", transform = data_crs, alpha = 0.3, markersize = 3)
+                        ax.plot(np.asarray(row.coordinates)[:,1], np.asarray(row.coordinates)[:,0], ".", color = "black", transform = data_crs, alpha = 0.2, markersize = 3)
                 
-                """
-                else:
-                    cut = np.where(np.diff(lons)<0)[0][0]+1
-                    max_lon = max(wb.dataset.lon.values)
-                    min_lon = min(wb.dataset.lon.values)
-                    seg1 = max(wb.dataset.lon.values)-lons[cut-1]
-                    seg2 = lons[cut]-min(wb.dataset.lon.values)
-                    m = (lats[cut]-lats[cut-1])/(seg1+seg2+1)
-
-                    lon_segs = [lons[:cut]+[max_lon+1], [min_lon]+lons[cut:]]
-                    lat_segs = [lats[:cut]+[lats[cut-1]+(seg1+1)*m], [lats[cut-1]+(seg1+1)*m]+lats[cut:]]
-                    for lon, lat in zip(lon_segs, lat_segs):
-                        ax.plot(lon, lat, "-", transform=data_crs, color = "black")
-                    ax.scatter(lon_segs[0][0],lat_segs[0][0], s=14, zorder=10,facecolors='none', edgecolor='black', transform=data_crs)
-                    ax.plot(lon_segs[0][0], lat_segs[0][0], ".", color = "red", transform=data_crs, alpha =0.7)
-                """
+                max_lon = max(wb.dataset.lon.values)+1
+                min_lon = min(wb.dataset.lon.values)
+                
+                #check if the path needs to be split due to a crossing of the date border
+                diffs = abs(np.diff(lons))>wb.dims["lon"]/2
+                split = [[i-1,i] for i in np.where(diffs)[0]+1]
+                no_split = [[i-1,i] for i in np.where(~diffs)[0]+1]
+                
+                #plot paths that do not need to be split
+                for item in no_split:
+                    ev_seg = np.asarray(group[item[0]:item[1]+1].com.tolist())
                     
+                    ax.plot(ev_seg[:,1], ev_seg[:,0], "-", transform=data_crs, color = "black")
+                    
+                #plot paths that have to be split
+                for item in split:
+                    ev_seg = np.asarray(group[item[0]:item[1]+1].com.tolist())
+
+                    #upstream split
+                    if np.diff(ev_seg[:,1])<0:
+                        lons_plot = [(ev_seg[0,1], max_lon), (min_lon, ev_seg[1,1])]
+                        lon_diffs = np.diff(lons_plot)
+
+                        m = np.diff(ev_seg[:,0])[0]/np.sum(lon_diffs)
+                        lats_plot = [(ev_seg[0,0],ev_seg[0,0]+lon_diffs[0][0]*m),(ev_seg[1,0]-lon_diffs[1][0]*m, ev_seg[1,0])]
+
+                        for lon, lat in zip(lons_plot, lats_plot):
+                            ax.plot(lon, lat, "-", "-", transform=data_crs, color = "black")
+
+                    #downstream split
+                    else:
+                        lons_plot = [(ev_seg[0,1], min_lon), (max_lon, ev_seg[1,1])]
+                        lon_diffs = np.diff(lons_plot)
+
+                        m = np.diff(ev_seg[:,0])[0]/np.sum(lon_diffs)
+                        lats_plot = [(ev_seg[0,0],ev_seg[0,0]+lon_diffs[0][0]*m),(ev_seg[1,0]-lon_diffs[1][0]*m, ev_seg[1,0])]
+
+                        for lon, lat in zip(lons_plot, lats_plot):
+                            ax.plot(lon, lat, "-", "-", transform=data_crs, color = "black")        
+                            
+        #plot invisible weigths to get a plot of the full grid       
         p = self.dataset.weight.plot.contourf(ax=ax, transform=data_crs, add_colorbar = False, alpha =0)
 
+        #add coast lines and grid lines
         ax.add_feature(cfeature.COASTLINE, color="dimgrey")
         gr = ax.gridlines(draw_labels=False, color="black", linestyle="dotted", linewidth = 1.1)
 
+        #plot labels
         if labels == True:
             gr = ax.gridlines(draw_labels=True, color="black", linestyle="dotted", linewidth = 1.1)
             gr.xlabel_style = {'size': 12, 'color': 'black', "rotation":0}
             gr.ylabel_style = {'size': 12, 'color': 'black'}
 
+        #make a circular cut out for the NorthPolarStereo projection
         if proj == ccrs.NorthPolarStereo():
             theta = np.linspace(0, 2*np.pi, 100)
             center, radius = [0.5, 0.5], 0.5
@@ -1368,7 +1420,8 @@ class wavebreaking(object):
             circle = mpath.Path(verts * radius + center)
             ax.set_boundary(circle, transform=ax.transAxes)
             ax.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = ax.transAxes))
-            
+        
+        #set title
         ax.set_title(title, fontweight='bold',fontsize=20)
         
         
