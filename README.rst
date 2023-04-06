@@ -34,7 +34,52 @@ Important information:
 
 Installation
 --------
---> WILL BE ADDED SOON
+
+Simple instructions
+~~~~~~~~
+By using pip, WaveBreaking can be directly installed in a virtual environment:
+ 
+..  code-block:: 
+
+        pip install wavebreaking ### NOT AVAILABLE YET
+
+The evironment is automatically checked for the necessary dependencies. After the installation you can start calculating wave breaking events by following the tutorial below. 
+
+The WaveBreaking GitHub repository can also be directly installed by using pip:
+
+..  code-block:: 
+
+        pip install git+https://github.com/skaderli/WaveBreaking
+
+Advanced instructions
+~~~~~~~~
+For developers, it is suggested to clone the WaveBreaking repository first and then install the tool locally. After setting the working directory, cloning the repository creates a directory named WaveBreaking. 
+
+..  code-block:: 
+
+        cd /path/to/local/workspace
+        git clone https://github.com/skaderli/WaveBreaking.git
+
+In the next step, the conda environment is set up and the necessary dependencies are installed:
+
+..  code-block:: 
+
+        conda create -y -n wb_dev
+        conda env update -f environment_dev.yml -n wb_dev
+
+Now the environment can be activated and the WaveBreaking package can be locally installed by using the developer mode "-e":
+
+.. code-block::
+
+        conda activate wb_dev
+        pip install -e .
+
+To check if the installation was sucessful, some tests can be performed:
+
+.. code-block::
+ 
+        python -m pytest
+        
 
 Tutorial
 --------
