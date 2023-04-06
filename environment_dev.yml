@@ -1,0 +1,18 @@
+name: wb_dev
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - pytest
+  - xarray
+  - netCDF4
+  - pandas
+  - scikit-image
+  - scipy
+  - tqdm
+  - wrf-python
+  - shapely
+  - scikit-learn
+  - matplotlib
+  - cartopy
+  - seaborn
