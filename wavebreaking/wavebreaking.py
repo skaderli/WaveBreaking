@@ -1359,11 +1359,11 @@ class wavebreaking(object):
                     for index,row in group.iterrows():
                         ax.plot(np.asarray(row.coordinates)[:,1], np.asarray(row.coordinates)[:,0], ".", color = "black", transform = data_crs, alpha = 0.2, markersize = 3)
                 
-                max_lon = max(wb.dataset.lon.values)+1
-                min_lon = min(wb.dataset.lon.values)
+                max_lon = max(self.dataset.lon.values)+1
+                min_lon = min(self.dataset.lon.values)
                 
                 #check if the path needs to be split due to a crossing of the date border
-                diffs = abs(np.diff(lons))>wb.dims["lon"]/2
+                diffs = abs(np.diff(lons))>self.dims["lon"]/2
                 split = [[i-1,i] for i in np.where(diffs)[0]+1]
                 no_split = [[i-1,i] for i in np.where(~diffs)[0]+1]
                 
