@@ -109,9 +109,9 @@ class wavebreaking(object):
             try:
                 self.ds = None
                 self.read(filename, **kwargs)
-            except IOError:
-                raise IOError("Unkown fileformat. Known formats are netcdf or csv.")
-
+            except:
+                raise ValueError("Unkown fileformat. Known formats are netcdf.")
+                
         wavebreaking.num_of_wavebreaking += 1
     
     def __repr__(self):
@@ -767,7 +767,7 @@ class wavebreaking(object):
                 #map the streamer on the original grid
                 x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+self._periodic_add), np.arange(0,self.dims[self._latitude_name]))
                 x, y = x.flatten(), y.flatten()
-                mask = shapely.vectorized.contains(Polygon(df_contour[int(df.ind1):int(df.ind2)+1]),y,x)
+                mask = shapely.vectorized.contains(Polygon(np.array(df_contour[int(df.ind1):int(df.ind2)+1])),y,x)
                 
                 return np.r_[df_contour[int(df.ind1):int(df.ind2)+1].values, np.c_[y,x][mask]]
 
