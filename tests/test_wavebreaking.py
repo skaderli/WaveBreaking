@@ -144,11 +144,11 @@ def test_plot_step(wavebreakings):
         assert False    
 
 def test_plot_tracks(wavebreakings):
-    #try:
-    wavebreakings.set_up()
-    wavebreakings.get_contours(variable = "variable", level = 2)
-    wavebreakings.get_overturnings()
-    wavebreakings.event_tracking(events = wavebreakings.overturnings)
-    wavebreakings.plot_tracks(events = wavebreakings.labeled_events)
-    #except:
-    #    assert False    
+    try:
+        wavebreakings.set_up()
+        wavebreakings.get_contours(variable = "variable", level = 2)
+        wavebreakings.get_overturnings()
+        wavebreakings.event_tracking(events = wavebreakings.overturnings)
+        wavebreakings.plot_tracks(events = wavebreakings.labeled_events)
+    except:
+        assert False    
