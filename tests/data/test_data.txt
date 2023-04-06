@@ -1,1 +1,1 @@
-This file represents a wrong input format for the wavebreaking class
+This file is used to test a wrong input format for the wavebreaking class
