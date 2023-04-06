@@ -37,13 +37,11 @@ Author
 import numpy as np
 import xarray as xr
 import pandas as pd
-from numpy.core import datetime64
 from skimage import measure
-from scipy import spatial
 import itertools as itertools
 from tqdm import tqdm
 import wrf as wrf
-from shapely.geometry import Point, LineString, MultiPoint, Polygon
+from shapely.geometry import Point, LineString, Polygon
 import shapely.vectorized
 from sklearn.metrics import DistanceMetric
 dist = DistanceMetric.get_metric('haversine')
@@ -52,10 +50,9 @@ dist = DistanceMetric.get_metric('haversine')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.path as mpath
+import matplotlib.colors as colors
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-import seaborn as sns
-import matplotlib.colors as colors
 
 # logs
 import logging
@@ -301,7 +298,7 @@ class wavebreaking(object):
                 var = self.ds[dim].data[0]
             except IndexError:
                 var = self.ds[dim].data
-            if isinstance(var, datetime64):
+            if isinstance(var, np.datetime64):
                 return dim   
         # no 'time' dimension found
         logger.warning(
@@ -481,6 +478,9 @@ class wavebreaking(object):
         temp = wrf.smooth2d(temp,passes)
         #remove wrap from the smoothed field
         self.dataset[temp.name] = temp.isel({self._longitude_name:slice(5,-5)})
+        
+        #assign attributes
+        self.dataset[temp.name] = self.dataset[temp.name].assign_attrs(self.dataset[variable].attrs)
 
         logger.info("Variable created: '{}'".format(temp.name))
     
@@ -1273,7 +1273,10 @@ class wavebreaking(object):
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
         cbar = plt.colorbar(p, cax=cax, drawedges=True)
         cbar.ax.set_yticklabels(levels, fontsize=11, weight='bold')
-        cbar.set_label(label = self.dataset[variable].long_name + " [" +self.dataset[variable].units + "]", size = 12, fontweight="bold",labelpad=15)
+        
+        if all(x in self.dataset[variable].attrs for x in ["units", "long_name"]):
+            cbar.set_label(label = self.dataset[variable].long_name + " [" +self.dataset[variable].units + "]", size = 12, fontweight="bold",labelpad=15)
+            
         cbar.outline.set_color('black')
         cbar.outline.set_linewidth(2)
         cbar.dividers.set_color('black')
