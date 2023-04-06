@@ -10,3 +10,16 @@ twine==1.14.0
 
 pytest==6.2.4
 
+xarray
+netCDF4
+pandas
+scikit-image
+scipy
+tqdm
+wrf-python
+shapely
+scikit-learn
+matplotlib
+cartopy
+seaborn
+
