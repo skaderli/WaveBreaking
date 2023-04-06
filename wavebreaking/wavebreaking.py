@@ -1086,7 +1086,7 @@ class wavebreaking(object):
 # ============================================================================
         
     
-    def plot_clim(self, variable, seasons = None, proj = ccrs.PlateCarree(), smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
+    def plot_clim(self, variable, seasons = None, proj = "PlateCarree", smooth_passes = 10, periodic = True, labels = True, levels = None, cmap = None, title = ""):
         
         """
         Creates a simple climatological plot showing the occurrence frequency of the detected events. 
@@ -1097,8 +1097,8 @@ class wavebreaking(object):
                 name of the xarray.Dataset variable containing the locations of the events flagged with the value 1
             seasons: list or array, optional
                 months of the seasons of which the occurrence frequency should be calculated (e.g. [11,12,1])
-            proj: cartopy.crs projection, optional
-                Cartopy projection
+            proj: string, optional
+                name of cartopy projection
             smooth_passes: int or float, optional
                 number of smoothing passes of the 5-point smoothing of the occurrence frequencies
             periodic: bool, optional
@@ -1125,7 +1125,7 @@ class wavebreaking(object):
         
         #define cartopy projections
         data_crs = ccrs.PlateCarree()
-        proj = proj
+        proj = getattr(ccrs, proj)()
 
         #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
@@ -1197,7 +1197,7 @@ class wavebreaking(object):
         ax.set_title(title, fontweight='bold',fontsize=20)
         
     
-    def plot_step(self, flag_variable, variable, step, contour_level, proj = ccrs.PlateCarree(),labels = True, levels = None, cmap = None, title = ""):
+    def plot_step(self, flag_variable, variable, step, contour_level, proj = "PlateCarree",labels = True, levels = None, cmap = None, title = ""):
         
         """
         Creates a plot showing the events on one time step.
@@ -1212,8 +1212,8 @@ class wavebreaking(object):
                 index or name of a time step in the xarray.Dataset
             contour_level: list
                 list of contour levels that are shown in the plot
-            proj: cartopy.crs projection, optional
-                Cartopy projection
+            proj: string, optional
+                name of cartopy projection
             labels: bool, optional
                 If False, no labels are added to the plot
             levels: list or array, optional
@@ -1250,7 +1250,7 @@ class wavebreaking(object):
 
         #define cartopy projections        
         data_crs = ccrs.PlateCarree()
-        proj = proj
+        proj = getattr(ccrs, proj)()
 
         #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
@@ -1308,7 +1308,7 @@ class wavebreaking(object):
         plt.text(0.99,0.99, "Date: " + str(date), fontsize = 12, fontweight = "bold", ha='right', va='top', transform=ax.transAxes)
         
         
-    def plot_tracks(self, events, proj = ccrs.PlateCarree(), labels = True, min_path = 0, plot_events = False, title = ""):
+    def plot_tracks(self, events, proj = "PlateCarree", labels = True, min_path = 0, plot_events = False, title = ""):
         
         """
         Creates a plot showing the tracks of the temporally tracked events. 
@@ -1317,8 +1317,8 @@ class wavebreaking(object):
         ----------
             events: pd.DataFrame
                 DataFrame with the date, coordinates and label of every identified event
-            proj: cartopy.crs projection, optional
-                Cartopy projection
+            proj: string, optional
+                name of cartopy projection
             labels: bool, optional
                 If False, no labels are added to the plot
             min_path: int, optional
@@ -1341,7 +1341,7 @@ class wavebreaking(object):
         
         #define cartopy projections
         data_crs = ccrs.PlateCarree()
-        proj = proj
+        proj = getattr(ccrs, proj)()
 
         #initialize figure
         fig, ax = plt.subplots(1,1, subplot_kw=dict(projection=proj), figsize=(12,8))
