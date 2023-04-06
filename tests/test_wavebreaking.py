@@ -8,11 +8,17 @@ Remark : The test functions are based on the ConTrack - Contour Tracking tool de
 
 """
 
+import numpy as np
+import xarray as xr
+import pandas as pd
+
+import warnings
 import pytest
 
 from wavebreaking import wavebreaking
 
 dataset = 'tests/data/test_data.nc'
+wrong_dataset = 'tests/data/test_data.txt'
 
 @pytest.fixture
 def wavebreakings():
@@ -34,9 +40,9 @@ def test_read_netcdf():
 def test_read_wrong():
     try:
         wavebreaking(wrong_dataset)
-    except IOError as err:
-        assert err.args[0] == "Unkown fileformat. Known formats " \
-                               "are netcdf."
+    except ValueError as err:
+        assert err.args[0] == "Unkown fileformat. Known formats are netcdf."
+        
 def test_read_xarray():
     data = xr.open_dataset(dataset)
     wavebreakings = wavebreaking()
@@ -47,10 +53,10 @@ def test_len(wavebreakings):
     assert len(wavebreakings) == 1
 
 def test_ntime(wavebreakings):
-    assert wavebreakings.ntime == 11
+    assert wavebreakings.ntime == 15
     
 def test_dimensions(wavebreakings):
-    assert wavebreakings.dimensions == ['lat', 'lon', 'time']
+    assert wavebreakings.dimensions == ['lon', 'lat', 'time']
     
 def test_variables(wavebreakings):
     assert wavebreakings.variables == ['variable']
@@ -68,3 +74,38 @@ def test_set_up_automatic(wavebreakings):
     assert wavebreakings._time_name == 'time'
     assert wavebreakings._longitude_name == 'lon'
     assert wavebreakings._latitude_name == 'lat'
+    
+def test_calculate_momentum_flux(wavebreakings):
+    wavebreakings.set_up()  
+    wavebreakings.calculate_momentum_flux('variable', 'variable')
+    assert "mflux" in wavebreakings.dataset.keys()
+    assert type(wavebreakings.dataset.mflux) is xr.DataArray
+
+def test_calculate_smoothed_field(wavebreakings):
+    wavebreakings.set_up() 
+    wavebreakings.calculate_smoothed_field('variable', 10)
+    assert "smooth_variable" in wavebreakings.dataset.keys()
+    assert type(wavebreakings.dataset.smooth_variable) is xr.DataArray
+    
+def test_get_contours(wavebreakings):
+    wavebreakings.set_up()
+    wavebreakings.get_contours("variable", 2)
+    assert type(wavebreakings.contours) is pd.DataFrame
+    assert list(wavebreakings.contours.columns) == ['date', 'coordinates', 'level', 'exp_lon', 'mean_lat']
+    assert type(wavebreakings._contours_wb_calc) is pd.DataFrame
+    
+def test_get_streamers(wavebreakings):
+    wavebreakings.set_up()
+    wavebreakings.get_contours("variable", 2)
+    wavebreakings.get_streamers()
+    assert type(wavebreakings.streamers) is pd.DataFrame
+    assert list(wavebreakings.streamers.columns) == ['date', 'coordinates', 'mean_var', 'area', 'com']
+    
+def test_get_overturnings(wavebreakings):
+    wavebreakings.set_up()
+    wavebreakings.get_contours("variable", 2)
+    wavebreakings.get_overturnings()
+    assert type(wavebreakings.overturnings) is pd.DataFrame
+    assert wavebreakings.overturnings.columns.tolist() == ['date', 'coordinates', 'mean_var', 'area', 'com']
+    
+    
