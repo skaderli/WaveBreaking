@@ -83,7 +83,61 @@ To check if the installation was sucessful, some tests can be performed:
 
 Tutorial
 --------
---> WILL BE ADDED SOON  
+
+This tutorial shows how to calculate Rossby wave breaking events step by step. After successfully installling the wavebreaking package, the wavebreaking module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where the wavebreking package is instaled) is running.
+
+.. code-block:: python
+
+        from wavebreaking import wavebreaking
+        
+Read data:
+~~~~~~~~~~
+
+Input data is only accepted in a NetCDF-file with two spatial and one temporal dimensions. There are two options to read data: Either directly as a NetCDF-file or as a xarray.DataSet: 
+
+.. code-block:: python
+
+        #input data 
+        import xarray as xr
+        file = "tests/data/test_data.nc"
+        ds = xr.open_dataset(file)
+
+        #initiate wavebreaking class and read data
+        wb = wavebreaking(file) #or
+        wb = wavebreaking(ds)
+        
+        #data can also be read in explicitly
+        wb = wavebreaking()
+        wb.read(file) #or
+        wb.read_xarray(ds)
+        
+Data pre-processing:
+~~~~~~~~~~       
+
+Optionally, the variable intended for the wave breaking calculations can be smoothed. The smoothing routine applies a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. This routine creates a xr.DataArray with the variable "smooth_variable". 
+
+.. code-block:: python
+
+        #smooth variable with 5 passes
+        wb.calculate_smoothed_field("variable", passes = 5)
+        
+        #access xr.DataArray
+        wb["smooth_variable"]
+        
+The wavebreaking module can calculate the intensity for each identified breaking event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux calculated as the product of the (daily) zonal deviation of both wind components. More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
+
+.. code-block:: python
+
+        #calculate momentum flux
+        wb.calculate_momentum_flux(variable_zonal = "zonal", variable_meridional = "meridional", dtime = "1D")
+                                   
+Contour calculation:
+~~~~~~~~~~
+        
+
+
+
+
 
 Credits
 -------
