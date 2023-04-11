@@ -29,7 +29,6 @@ Important information:
 
 * The package is still under constructuion and therefore, major errors could occur. 
 * Free software: MIT license
-* Documentation: https://wavebreaking.readthedocs.io.
 * Further documentation about the implemented methods can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
 
 Installation
@@ -97,9 +96,10 @@ Input data is only accepted in a NetCDF-file with two spatial and one temporal d
 
 .. code-block:: python
 
-        #input data 
+        #input ERA5 data for demonstration from 1979-06-01 to 1979-08-31 
+        #the data can be downloaded from https://cds.climate.copernicus.eu
         import xarray as xr
-        file = "tests/data/test_data.nc"
+        file = "docs/demo_data/demo_data.nc"
         ds = xr.open_dataset(file)
 
         #initiate wavebreaking class and read data
@@ -119,16 +119,16 @@ Optionally, the variable intended for the wave breaking calculations can be smoo
 .. code-block:: python
 
         #smooth variable with 5 passes
-        wb.calculate_smoothed_field("variable", passes = 5)
+        wb.calculate_smoothed_field("pv", passes = 5)
         
         #access xarray.DataArray
-        wb["smooth_variable"]
+        wb["smooth_pv"]
         
 The wavebreaking module can calculate the intensity for each identified breaking event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux is calculated as the product of the (daily) zonal deviation of both wind components. This routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
 
 .. code-block:: python
 
-        #calculate momentum flux
+        #calculate momentum flux (wind data not included in the demo data)
         wb.calculate_momentum_flux(variable_zonal = "zonal", variable_meridional = "meridional", dtime = "1D")
         
         #access xarray.DataArray
@@ -142,7 +142,7 @@ Both Rossby wave breaking indices are based on a contour line representing the d
 .. code-block:: python
 
         #calculate contours
-        wb.get_contours(variable = "smooth_variable", level = 2, periodic_add = 120)
+        wb.get_contours(variable = "smooth_pv", level = 2, periodic_add = 120)
         
         #access pandas.DataFrame
         wb.contours 
@@ -188,10 +188,10 @@ To analyze a specific large scale situation, the wave breaking events on a singl
 
 .. code-block:: python
         
-        wb.plot_step(variable = "smooth_variable", #variable used for contour calculation
+        wb.plot_step(variable = "smooth_pv", #variable used for contour calculation
                      flag_variable = "stratos_streamers", 
                      contour_level = [2], 
-                     step = "1900-01-01", #date or index
+                     step = "1979-06-18", #date or index
                      proj = "NorthPolarStereo", #name of cartopy projection,
                      labels = True, 
                      levels = None, #levels color bar
@@ -228,7 +228,7 @@ Last but not least, the wave breaking module provides a routine to track events 
 .. code-block:: python
 
         #filter events
-        f_events = wb.streamers[wb.streamers.mean_var >= 2]
+        f_events = wb.streamers[wb.streamers.mean_var >= 2][::2] #use every second event for clearity
 
         #track events
         wb.event_tracking(f_events, 
@@ -254,7 +254,7 @@ The result can be viszalized by plotting the paths of the tracked events:
 Credits
 -------
 
-* The installation giude above is to some extend based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
+* The installation guide is to some extend based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
 * This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
