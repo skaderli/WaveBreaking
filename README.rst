@@ -199,6 +199,8 @@ To analyze a specific large scale situation, the wave breaking events on a singl
                      title = "Potential vorticity streamers"
                      )
 
+.. image:: docs/plot_step.png
+    :alt: plot step 
 
 
 Credits
