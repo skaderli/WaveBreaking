@@ -201,7 +201,24 @@ To analyze a specific large scale situation, the wave breaking events on a singl
 
 .. image:: docs/plot_step.png
     :alt: plot step 
+    
+The analyze Rossby wave breaking from a climatological perspective, the occurrence (for specific seasons) can be plotted:
 
+.. code-block:: python
+
+        wb.plot_clim(variable = "stratos_streamers", 
+                     seasons = None, #specify months  
+                     smooth_passes = 2, #of the occurrence frequency field  
+                     proj = "NorthPolarStereo", 
+                     periodic = True, 
+                     labels = True, 
+                     levels = None, 
+                     cmap = None, 
+                     title = "Climatological analysis"
+                     )
+
+.. image:: docs/plot_climatology.png
+    :alt: plot climatology 
 
 Credits
 -------
