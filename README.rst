@@ -219,6 +219,37 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 
 .. image:: docs/plot_climatology.png
     :alt: plot climatology 
+    
+Event tracking:
+~~~~~~~~~~~
+
+Last but not least, the wave breaking module provides a routine to track events over time. Events, that overlap between two time steps receive the same label. Again, it is suggested to filter the events first. This routine adds a label column to the events pandas.DataFrame.
+
+.. code-block:: python
+
+        #filter events
+        f_events = wb.streamers[wb.streamers.mean_var >= 2]
+
+        #track events
+        wb.event_tracking(f_events, 
+                          box = False #if True, a rectangular box is used for the tracking
+                          )
+
+The result can be viszalized by plotting the paths of the tracked events:
+
+.. code-block:: python
+        
+        wb.plot_tracks(events = wb.labeled_events, 
+                       proj = "NorthPolarStereo", 
+                       min_path = 0, #minimal number of steps per tracked event
+                       labels = True,
+                       plot_events = False, #if True, the grid cells of the events are shaded
+                       title = "Events paths"
+                       )
+                       
+.. image:: docs/plot_tracks.png
+    :alt: plot tracks
+
 
 Credits
 -------
