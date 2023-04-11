@@ -936,18 +936,18 @@ class wavebreaking(object):
         Parameters
         ----------    
             min_exp : int or float, optional
-                Minimal longitudinal expansion of a cut off event
+                Minimal longitudinal expansion of a cutoff event
                 
         Returns
         -------
             pd.DataFrame: DataFrame
-                DataFrame providing different characteristics of the cut offs accessible at wavebreaking.streamers
-                    "date": date of the cut off in time steps of the original variable
-                    "coordinates": coordinate points of the grid cells representing the cut off in the format (y,x)
-                    "mean_var": mean of the variable used for the contour calculation over all cut off grid cell
-                    "area": area of a cut off
-                    "intensity": sum of the intensity (momentum flux) over all cut off grid cells weighted with the corresponding area
-                    "com": center of mass of a cut off in the format (y,x)
+                DataFrame providing different characteristics of the cutoffs accessible at wavebreaking.cutoffs
+                    "date": date of the cutoff in time steps of the original variable
+                    "coordinates": coordinate points of the grid cells representing the cutoff in the format (y,x)
+                    "mean_var": mean of the variable used for the contour calculation over all cutoff grid cell
+                    "area": area of a cutoff
+                    "intensity": sum of the intensity (momentum flux) over all cutoff grid cells weighted with the corresponding area
+                    "com": center of mass of a cutoff in the format (y,x)
         
         """
         
@@ -968,7 +968,7 @@ class wavebreaking(object):
         weight_lat = np.cos(self.dataset[self._latitude_name].values*np.pi/180)
         self.dataset["weight"] = xr.DataArray(np.ones((self.dims[self._latitude_name], self.dims[self._longitude_name])) * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None], dims = [self._latitude_name, self._longitude_name])
         
-        logger.info('Calculating cut offs...')
+        logger.info('Calculating cutoffs...')
         
         #set up progress bar
         times = self.dataset[self._time_name]
@@ -979,17 +979,17 @@ class wavebreaking(object):
                                                    (self._contours_wb_calc.exp_lon >= min_exp)].reset_index(drop=True)
         self.cutoffs = pd.concat([self.get_cutoffs_timestep(group) for (name,group),p in zip(contours_filtered.groupby("date"),progress)]).reset_index(drop=True)
         
-        logger.info('{} cut off(s) identified!'.format(len(self.cutoffs)))
+        logger.info('{} cutoff(s) identified!'.format(len(self.cutoffs)))
         
     def get_cutoffs_timestep(self, group):
         """
-        Calculate cut offs for one time step. 
+        Calculate cutoffs for one time step. 
         """
         
         #check for duplicates
         def check_duplicates(df):
             """
-                Check if there are cut off duplicates due to the periodic expansion in the longitudinal direction
+                Check if there are cutoff duplicates due to the periodic expansion in the longitudinal direction
             """
             #drop duplicates after mapping the coordinates to the original grid
             df = df.reset_index(drop=True)
@@ -1011,10 +1011,10 @@ class wavebreaking(object):
 
         df_co = check_duplicates(group)
         
-        #drop cut offs with less than 4 coordinates 
+        #drop cutoffs with less than 4 coordinates 
         df_co = pd.DataFrame([row for index,row in df_co.iterrows() if len(row.coordinates)>=4]).reset_index(drop = True)
         
-        #drop cut offs that are not closed
+        #drop cutoffs that are not closed
         df_co = pd.DataFrame([row for index,row in df_co.iterrows() if dist.pairwise((np.radians(np.asarray([row.coordinates[0], row.coordinates[-1]]))))[0,1]*6371 < 200])
 
         #return the result in a DataFrame  
@@ -1023,9 +1023,9 @@ class wavebreaking(object):
         else:
             def cutoff_to_grid(df):
                 """
-                    Extract all grid cells that are enclosed by the path of a cut off
+                    Extract all grid cells that are enclosed by the path of a cutoff
                 """
-                #map the streamer on the original grid
+                #map the cutoffs on the original grid
                 x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+self._periodic_add), np.arange(0,self.dims[self._latitude_name]))
                 x, y = x.flatten(), y.flatten()
                 mask = shapely.vectorized.contains(Polygon(np.array(df.coordinates)),y,x)
