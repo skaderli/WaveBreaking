@@ -2,7 +2,7 @@
         :target: https://pypi.python.org/pypi/wavebreaking
 
 ============
-WaveBreaking
+WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 ============
 
 .. image:: docs/README.gif
@@ -114,28 +114,90 @@ Input data is only accepted in a NetCDF-file with two spatial and one temporal d
 Data pre-processing:
 ~~~~~~~~~~       
 
-Optionally, the variable intended for the wave breaking calculations can be smoothed. The smoothing routine applies a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. This routine creates a xr.DataArray with the variable "smooth_variable". 
+Optionally, the variable intended for the wave breaking calculations can be smoothed. The smoothing routine applies a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. This routine creates a xarray.DataArray with the variable "smooth_variable". 
 
 .. code-block:: python
 
         #smooth variable with 5 passes
         wb.calculate_smoothed_field("variable", passes = 5)
         
-        #access xr.DataArray
+        #access xarray.DataArray
         wb["smooth_variable"]
         
-The wavebreaking module can calculate the intensity for each identified breaking event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux calculated as the product of the (daily) zonal deviation of both wind components. More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
+The wavebreaking module can calculate the intensity for each identified breaking event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux is calculated as the product of the (daily) zonal deviation of both wind components. This routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
 
 .. code-block:: python
 
         #calculate momentum flux
         wb.calculate_momentum_flux(variable_zonal = "zonal", variable_meridional = "meridional", dtime = "1D")
+        
+        #access xarray.DataArray
+        wb["mflux"]
                                    
 Contour calculation:
 ~~~~~~~~~~
+       
+Both Rossby wave breaking indices are based on a contour line representing the dynamical tropopause. The "get_contours()" function calculates the dynamical tropopause on a specific level (commonly the 2 PVU level for Potential Vorticity). If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. This routines creates a pandas.DataFrame with the coordinates and some properties of the contour line.
+
+.. code-block:: python
+
+        #calculate contours
+        wb.get_contours(variable = "smooth_variable", level = 2, periodic_add = 120)
+        
+        #access pandas.DataFrame
+        wb.contours 
         
 
+Index calculation:
+~~~~~~~~~~
 
+Now the index calculation can be performed based on the identified contour lines. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. Both index functions create a pd.DataFrame with the coordinates and some properties of the events.
+
+.. code-block:: python
+
+        #calculate events
+        wb.get_streamers(geo_dis = 800, cont_dis = 1500)
+        wb.get_overturnings(range_group = 500, min_exp = 5)
+        
+        #access pandas.DataFrame
+        wb.streamers
+        wb.overturnings
+
+Transform to DataSet:
+~~~~~~~~~~
+
+To calculate and visualize the occurrence of Rossby wave breaking, it comes in handy to transform the coordinates of the events into a xarray.DataSet. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to filter the pandas.DataFrame for the desired events (e.g., stratospheric events with a Potential Vorticity value larger than 2 PVU).
+
+.. code-block:: python
+
+        #filter events
+        f_events = wb.streamers[wb.streamers.mean_var >= 2]
+        
+        #transform to xarray
+        wb.to_xarray(f_events, name = "flag")
+        
+        #access xarray.DataSet
+        wb.flag
+        
+Visualization: 
+~~~~~~~~~~
+
+The wavebreaking module provides two options to do a first visual analysis of the ouput. Both options are based on the xarray.Dataset with the flagged grid cells from the "to_xarray" function. 
+
+To analyze a specific large scale situation, the wave breaking events on a single time steps can be plotted:
+
+.. code-block:: python
+        
+        wb.plot_step(variable = "smooth_variable", #variable used for contour calculation
+                     flag_variable = "stratos_streamers", 
+                     contour_level = [2], 
+                     step = "1900-01-01", #date or index
+                     proj = "NorthPolarStereo", #name of cartopy projection,
+                     labels = True, 
+                     levels = None, #levels color bar
+                     cmap = None, 
+                     title = "Potential vorticity streamers"
+                     )
 
 
 
