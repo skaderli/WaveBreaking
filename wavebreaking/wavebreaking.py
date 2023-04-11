@@ -970,13 +970,10 @@ class wavebreaking(object):
         
         logger.info('Calculating cutoffs...')
         
-        #set up progress bar
-        times = self.dataset[self._time_name]
-        progress = tqdm(range(0,len(times)), leave = True, position = 0)
-        
-        #calculate streamers for each time step
+        #calculate cutoffs for each time step and set up progress bar
         contours_filtered = self._contours_wb_calc[(self._contours_wb_calc.exp_lon < self._contours_wb_calc.exp_lon.max()) & 
                                                    (self._contours_wb_calc.exp_lon >= min_exp)].reset_index(drop=True)
+        progress = tqdm(range(0,len(contours_filtered.groupby("date"))), leave = True, position = 0)
         self.cutoffs = pd.concat([self.get_cutoffs_timestep(group) for (name,group),p in zip(contours_filtered.groupby("date"),progress)]).reset_index(drop=True)
         
         logger.info('{} cutoff(s) identified!'.format(len(self.cutoffs)))
