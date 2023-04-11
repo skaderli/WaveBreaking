@@ -19,8 +19,8 @@ import pytest
 
 from wavebreaking import wavebreaking
 
-dataset = 'tests/data/test_data.nc'
-wrong_dataset = 'tests/data/test_data.txt'
+dataset = 'tests/tests_data/test_data.nc'
+wrong_dataset = 'tests/tests_data/test_data.txt'
 
 @pytest.fixture
 def wavebreakings():
