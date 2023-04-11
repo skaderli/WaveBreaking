@@ -83,7 +83,7 @@ To check if the installation was sucessful, some tests can be performed:
 Tutorial
 --------
 
-This tutorial shows how to calculate Rossby wave breaking events step by step. After successfully installling the wavebreaking package, the wavebreaking module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where the wavebreking package is instaled) is running.
+This tutorial shows how to calculate Rossby wave breaking events step by step. After successfully installling the wavebreaking package, the wavebreaking module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where the wavebreking package is installed) is running.
 
 .. code-block:: python
 
@@ -92,7 +92,7 @@ This tutorial shows how to calculate Rossby wave breaking events step by step. A
 Read data:
 ~~~~~~~~~~
 
-Input data is only accepted in a NetCDF-file with two spatial and one temporal dimensions. There are two options to read data: Either directly as a NetCDF-file or as a xarray.DataSet: 
+Input data is only accepted in a NetCDF-file with two spatial and one temporal dimension. There are two options to read data: Either directly as a NetCDF-file or as a xarray.Dataset: 
 
 .. code-block:: python
 
@@ -124,7 +124,7 @@ Optionally, the variable intended for the wave breaking calculations can be smoo
         #access xarray.DataArray
         wb["smooth_pv"]
         
-The wavebreaking module can calculate the intensity for each identified breaking event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux is calculated as the product of the (daily) zonal deviation of both wind components. This routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
+The wavebreaking module can calculate the intensity for each identified event. For that, the intensity field needs to be calculated before the event identification. Here, the momentum flux derived from the product of the (daily) zonal deviations of both wind components is used as the intensity. This routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_. If the momentum flux is not calculated, the intensity of the events is not provided.
 
 .. code-block:: python
 
@@ -163,10 +163,10 @@ Now the index calculation can be performed based on the identified contour lines
         wb.streamers
         wb.overturnings
 
-Transform to DataSet:
+Transform to Dataset:
 ~~~~~~~~~~
 
-To calculate and visualize the occurrence of Rossby wave breaking, it comes in handy to transform the coordinates of the events into a xarray.DataSet. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to filter the pandas.DataFrame for the desired events (e.g., stratospheric events with a Potential Vorticity value larger than 2 PVU).
+To calculate and visualize the occurrence of Rossby wave breaking, it comes in handy to transform the coordinates of the events into a xarray.Dataset. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to filter the pandas.DataFrame for the desired events (e.g., stratospheric events with a Potential Vorticity value larger than 2 PVU).
 
 .. code-block:: python
 
@@ -176,13 +176,13 @@ To calculate and visualize the occurrence of Rossby wave breaking, it comes in h
         #transform to xarray
         wb.to_xarray(f_events, name = "flag")
         
-        #access xarray.DataSet
+        #access xarray.Dataset
         wb.flag
         
 Visualization: 
 ~~~~~~~~~~
 
-The wavebreaking module provides two options to do a first visual analysis of the ouput. Both options are based on the xarray.Dataset with the flagged grid cells from the "to_xarray" function. 
+The wavebreaking module provides two options to do a first visual analysis of the output. Both options are based on the xarray.Dataset with the flagged grid cells from the "to_xarray" function. 
 
 To analyze a specific large scale situation, the wave breaking events on a single time steps can be plotted:
 
@@ -223,7 +223,7 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 Event tracking:
 ~~~~~~~~~~~
 
-Last but not least, the wave breaking module provides a routine to track events over time. Events, that overlap between two time steps receive the same label. Again, it is suggested to filter the events first. This routine adds a label column to the events pandas.DataFrame.
+Last but not least, the wave breaking module provides a routine to track events over time. Events that overlap between two time steps receive the same label. Again, it is suggested to filter the events first. This routine adds a column "label" to the events pandas.DataFrame.
 
 .. code-block:: python
 
