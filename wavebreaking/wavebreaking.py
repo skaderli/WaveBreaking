@@ -1,3 +1,5 @@
+#### COPY CURRENT VERSION FROM WAVEBREAKING PACKAGE
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -548,7 +550,7 @@ class wavebreaking(object):
         
         #store contours that are used for the index calculation
         contours_wb_calc = pd.concat([item[1] for item in contours])
-        self._contours_wb_calc = contours_wb_calc[contours_wb_calc.exp_lon == contours_wb_calc.exp_lon.max()].reset_index(drop=True)
+        self._contours_wb_calc = contours_wb_calc.reset_index(drop=True)
         
         logger.info('{} contour(s) identified!'.format(len(self.contours)))
         
@@ -634,10 +636,6 @@ class wavebreaking(object):
                     "area": area of a streamer
                     "intensity": sum of the intensity (momentum flux) over all streamer grid cells weighted with the corresponding area
                     "com": center of mass of a streamer in the format (y,x)
-                    
-                Remark:
-                The contours are mapped on the original grid of the variable. 
-                The extended contours (if periodic_add > 0) used for the index calculation are accessible at wavebreaking._contours_wb_calc
         
         """
         
@@ -665,7 +663,8 @@ class wavebreaking(object):
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
         #calculate streamers for each time step
-        self.streamers = pd.concat([self.get_streamers_timestep(row, geo_dis, cont_dis) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
+        contours_filtered = self._contours_wb_calc[self._contours_wb_calc.exp_lon == self._contours_wb_calc.exp_lon.max()].reset_index(drop=True)
+        self.streamers = pd.concat([self.get_streamers_timestep(row, geo_dis, cont_dis) for (index,row),p in zip(contours_filtered.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} streamer(s) identified!'.format(len(self.streamers)))
         
@@ -795,14 +794,10 @@ class wavebreaking(object):
                 DataFrame providing different characteristics of the overturning event accessible at wavebreaking.overturnings
                     "date": date of the overturning in time steps of the original variable
                     "coordinates": coordinate points of the grid cells representing the overturning event in the format (y,x)
-                    "mean_var": mean of the variable used for the contour calculation over all streamer grid cell
+                    "mean_var": mean of the variable used for the contour calculation over all overturning grid cell
                     "area": area of an overturning event
                     "intensity": sum of the intensity (momentum flux) over all overturning grid cells weighted with the corresponding area
                     "com": center of mass of an overturning event in the format (y,x)
-                    
-                Remark:
-                The contours are mapped on the original grid of the variable. 
-                The extended contours (if periodic_add > 0) used for the index calculation are accessible at wavebreaking._contours_wb_calc
         
         """
         
@@ -830,7 +825,8 @@ class wavebreaking(object):
         progress = tqdm(range(0,len(times)), leave = True, position = 0)
         
         #calculate overturning events for each time step
-        self.overturnings = pd.concat([self.get_overturnings_timestep(row, range_group, min_exp) for (index,row),p in zip(self._contours_wb_calc.iterrows(),progress)]).reset_index(drop=True)
+        contours_filtered = self._contours_wb_calc[self._contours_wb_calc.exp_lon == self._contours_wb_calc.exp_lon.max()].reset_index(drop=True)
+        self.overturnings = pd.concat([self.get_overturnings_timestep(row, range_group, min_exp) for (index,row),p in zip(contours_filtered.iterrows(),progress)]).reset_index(drop=True)
         
         logger.info('{} overturning event(s) identified!'.format(len(self.overturnings)))
     
@@ -930,18 +926,129 @@ class wavebreaking(object):
             overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"])  for index,row in df_ot.iterrows()]
             return self.get_events(contour.date, overturnings_grids)
         
+        
+    def get_cutoffs(self, min_exp = 5):
+        
+        """
+        Identify cutoff structures. 
+        The cutoff calculation is based on the contour lines from wb.get_contours accessible at wavebreaking._contours_wb_calc.
+        
+        Parameters
+        ----------    
+            min_exp : int or float, optional
+                Minimal longitudinal expansion of a cut off event
+                
+        Returns
+        -------
+            pd.DataFrame: DataFrame
+                DataFrame providing different characteristics of the cut offs accessible at wavebreaking.streamers
+                    "date": date of the cut off in time steps of the original variable
+                    "coordinates": coordinate points of the grid cells representing the cut off in the format (y,x)
+                    "mean_var": mean of the variable used for the contour calculation over all cut off grid cell
+                    "area": area of a cut off
+                    "intensity": sum of the intensity (momentum flux) over all cut off grid cells weighted with the corresponding area
+                    "com": center of mass of a cut off in the format (y,x)
+        
+        """
+        
+        if hasattr(self, '_contours_wb_calc'):
+            logger.info("Check contours... OK")
+            pass
+        else:
+            errmsg = "Check contours... No contours found! Calculate contours first using wavebreaking.get_contours()"
+            raise ValueError(errmsg)
+            
+        if "mflux" in self.variables:
+            logger.info("Momentum flux variable detected. Intensity will be calculated.")
+        else:
+            logger.info("No momentum flux detected. Intensity will not be calculated.")
+       
+        #create variable "weight" representing the weighted area of each grid cell
+        #this follows the weights definition used in the ConTrack - Contour Tracking tool developed by Daniel Steinfeld
+        weight_lat = np.cos(self.dataset[self._latitude_name].values*np.pi/180)
+        self.dataset["weight"] = xr.DataArray(np.ones((self.dims[self._latitude_name], self.dims[self._longitude_name])) * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None], dims = [self._latitude_name, self._longitude_name])
+        
+        logger.info('Calculating cut offs...')
+        
+        #set up progress bar
+        times = self.dataset[self._time_name]
+        progress = tqdm(range(0,len(times)), leave = True, position = 0)
+        
+        #calculate streamers for each time step
+        contours_filtered = self._contours_wb_calc[(self._contours_wb_calc.exp_lon < self._contours_wb_calc.exp_lon.max()) & 
+                                                   (self._contours_wb_calc.exp_lon >= min_exp)].reset_index(drop=True)
+        self.cutoffs = pd.concat([self.get_cutoffs_timestep(group) for (name,group),p in zip(contours_filtered.groupby("date"),progress)]).reset_index(drop=True)
+        
+        logger.info('{} cut off(s) identified!'.format(len(self.cutoffs)))
+        
+    def get_cutoffs_timestep(self, group):
+        """
+        Calculate cut offs for one time step. 
+        """
+        
+        #check for duplicates
+        def check_duplicates(df):
+            """
+                Check if there are cut off duplicates due to the periodic expansion in the longitudinal direction
+            """
+            #drop duplicates after mapping the coordinates to the original grid
+            df = df.reset_index(drop=True)
+            temp = [[(item[0], item[1]%self.dims[self._longitude_name]) for item in row.coordinates] for index, row in df.iterrows()]
+
+            index_combinations = list(itertools.permutations(df.index, r=2))
+            check = [item for item in index_combinations if set(temp[item[0]]).issubset(set(temp[item[1]]))]
+
+            drop = []
+            for item in check:
+                lens = [len(temp[i]) for i in item]
+
+                if lens[0] == lens[1]:
+                    drop.append(max(item))
+                else:
+                    drop.append(item[np.argmin(lens)])
+
+            return df.drop(drop).reset_index(drop=True)
+
+        df_co = check_duplicates(group)
+        
+        #drop cut offs with less than 4 coordinates 
+        df_co = pd.DataFrame([row for index,row in df_co.iterrows() if len(row.coordinates)>=4]).reset_index(drop = True)
+        
+        #drop cut offs that are not closed
+        df_co = pd.DataFrame([row for index,row in df_co.iterrows() if dist.pairwise((np.radians(np.asarray([row.coordinates[0], row.coordinates[-1]]))))[0,1]*6371 < 200])
+
+        #return the result in a DataFrame  
+        if df_co.empty:
+            return pd.DataFrame([])
+        else:
+            def cutoff_to_grid(df):
+                """
+                    Extract all grid cells that are enclosed by the path of a cut off
+                """
+                #map the streamer on the original grid
+                x, y = np.meshgrid(np.arange(0,self.dims[self._longitude_name]+self._periodic_add), np.arange(0,self.dims[self._latitude_name]))
+                x, y = x.flatten(), y.flatten()
+                mask = shapely.vectorized.contains(Polygon(np.array(df.coordinates)),y,x)
+
+                return np.r_[df.coordinates, np.c_[y,x][mask]]
+
+            cutoff_grids = [pd.DataFrame(cutoff_to_grid(row), columns = ["y", "x"])  for index,row in df_co.iterrows()]
+            return self.get_events(group.date.iloc[0], cutoff_grids)
+        
+        
     def get_events(self, date, lodf):
         """
             This is an internal function to calculate several properties of the identified events.
         """
+        
+        #select time step and expand field for periodicity
+        ds = self.dataset.sel({self._time_name:date})
+        ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
+
         def event_properties(df):
             """
                 Calculate properties for each event.
             """
-            #select time step and expand field for periodicity
-            ds = self.dataset.sel({self._time_name:date})
-            ds = xr.concat([ds, ds.isel({self._longitude_name:slice(0,self._periodic_add)})], dim=self._longitude_name)
-
             #select grid cells of a specific event and calculate several properties
             temp = ds.isel({self._latitude_name:df.y.to_xarray(), self._longitude_name:df.x.to_xarray()})
             area = np.round(np.sum(temp.weight.values),2)
@@ -949,9 +1056,9 @@ class wavebreaking(object):
             com = np.round(np.sum(df.multiply((temp.weight*temp[self._contour_variable]).values, axis = 0), axis = 0)/sum((temp.weight*temp[self._contour_variable]).values),2)
             
             #map coordinates of the event to the original grid
-            df.x = self.dataset[self._longitude_name].values[df.x.values.astype("int")%self.dims[self._longitude_name]]
-            df.y = self.dataset[self._latitude_name].values[df.y.values.astype("int")%self.dims[self._latitude_name]]
-            df_coords = list(map(tuple,df.values))
+            x_original = self.dataset[self._longitude_name].values[df.x.values.astype("int")%self.dims[self._longitude_name]]
+            y_original = self.dataset[self._latitude_name].values[df.y.values.astype("int")%self.dims[self._latitude_name]]
+            df_coords = list(map(tuple, np.c_[y_original, x_original]))
 
             com[self._longitude_name]  = self.dataset[self._longitude_name].values[(np.round(com.x)%self.dims[self._longitude_name]).astype("int")]
             com[self._latitude_name]  = self.dataset[self._latitude_name].values[(np.round(com.y)%self.dims[self._latitude_name]).astype("int")]
@@ -970,7 +1077,7 @@ class wavebreaking(object):
             return pd.DataFrame([{"date":date, "coordinates":item[0], "mean_var":item[1], "area":item[2], "intensity":item[3], "com":item[4]} for item in properties])
         else:
             return pd.DataFrame([{"date":date, "coordinates":item[0], "mean_var":item[1], "area":item[2], "com":item[3]} for item in properties])
-        
+
         
 # ============================================================================
 # post-processing functions
@@ -1230,8 +1337,12 @@ class wavebreaking(object):
         
         """
         
+        if flag_variable not in self.variables:
+            errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(flag_variable)
+            raise ValueError(errmsg)
+            
         if variable not in self.variables:
-            errmsg = 'Variable {} not available! Use to_xarray() to transform the events to an xarray variable!'.format(variable)
+            errmsg = 'Variable {} not available! Choose other data variable!'.format(variable)
             raise ValueError(errmsg)
            
         #select date from data
