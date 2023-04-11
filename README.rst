@@ -8,13 +8,15 @@ WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 .. image:: docs/README.gif
     :alt: wavebreaking gif
     
-WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example in Potential Vorticity (PV) fields. By applying two different breaking indices, regions of RWB are identified and differenct characteristics of the breaking events such as area and intensity are calculated. The tracking routine provides information about the temporal evolution of the wave breaking events. Finally, the implemented plotting methods allow for a first visualization. 
+WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of the breaking events such as area and intensity are calculated. The tracking routine provides information about the temporal evolution of the wave breaking events. Finally, the implemented plotting methods allow for a first visualization. 
 
 The detection of RWB is based on applying a wave breaking index to the dynamical tropopause. The WaveBreaking package provides to different RWB indices:
 
 * **Streamer Index:** The streamer index is based on work by `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_). Streamers are elongated structures present on the contour line the represents the dynamical tropopause. They can be described by a pair of contour points that are close together in their geographical distance but far apart in their distance connecting the points on the contour. Further description can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
-* **Overturning Index:** The overturning index is based on work by `Barnes and Hartmann (2012)`_. This index indetifies overturning structures of the contour line that represents the dynamical tropopause. An overturning of the contour line is present if the contour intersects at least three times with the same longitude. Further description can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+* **Overturning Index:** The overturning index is based on work by `Barnes and Hartmann (2012)`_. This index identifies overturning structures of the contour line that represents the dynamical tropopause. An overturning of the contour line is present if the contour intersects at least three times with the same longitude. Further description can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+
+* **Cutoff Index:** The Cutoff Index provides information about the decaying of a wave breaking event. From a Potential Vorticity perspective, a wave breaking event is formed by an elongation of the 2 PVU contour line. These so-called streamers can elongate further until they separate from the main stratospheric or tropospheric body. The separated structure is referred to as a cutoff (`Wernli and Sprenger (2007)`_.
 
 .. _`Wernli and Sprenger (2007)`: https://journals.ametsoc.org/view/journals/atsc/64/5/jas3912.1.xml
 .. _`Sprenger et al. 2017`: https://journals.ametsoc.org/view/journals/bams/98/8/bams-d-15-00299.1.xml
@@ -27,7 +29,7 @@ The class structure and parts of the tracking routines are based on the `ConTrac
 Important information:
 -----------------
 
-* The package is still under constructuion and therefore, major errors could occur. 
+* The package is still under construction and therefore, major errors could occur. 
 * Free software: MIT license
 * Further documentation about the implemented methods can be found `here <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
 
@@ -42,7 +44,7 @@ By using pip, WaveBreaking can be directly installed in a virtual environment:
 
         pip install wavebreaking ### NOT AVAILABLE YET
 
-The evironment is automatically checked for the necessary dependencies. After the installation you can start calculating wave breaking events by following the tutorial below. 
+The environment is automatically checked for the necessary dependencies. After the installation you can start calculating wave breaking events by following the tutorial below. 
 
 The WaveBreaking GitHub repository can also be directly installed by using pip:
 
@@ -73,7 +75,7 @@ Now the environment can be activated and the WaveBreaking package can be locally
         conda activate wb_dev
         pip install -e .
 
-To check if the installation was sucessful, some tests can be performed:
+To check if the installation was successful, some tests can be performed:
 
 .. code-block::
  
@@ -83,7 +85,7 @@ To check if the installation was sucessful, some tests can be performed:
 Tutorial
 --------
 
-This tutorial shows how to calculate Rossby wave breaking events step by step. After successfully installling the wavebreaking package, the wavebreaking module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where the wavebreking package is installed) is running.
+This tutorial shows how to calculate Rossby wave breaking events step by step. After successfully installing the wavebreaking package, the wavebreaking module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where the wavebreaking package is installed) is running.
 
 .. code-block:: python
 
@@ -151,17 +153,19 @@ Both Rossby wave breaking indices are based on a contour line representing the d
 Index calculation:
 ~~~~~~~~~~
 
-Now the index calculation can be performed based on the identified contour lines. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. Both index functions create a pd.DataFrame with the coordinates and some properties of the events.
+Now the index calculation can be performed based on the identified contour lines. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. All index functions create a pd.DataFrame with the coordinates and some properties of the events.
 
 .. code-block:: python
 
         #calculate events
         wb.get_streamers(geo_dis = 800, cont_dis = 1500)
         wb.get_overturnings(range_group = 500, min_exp = 5)
+        wb.get_cutoffs(min_exp = 5)
         
         #access pandas.DataFrame
         wb.streamers
         wb.overturnings
+        wb.cutoffs
 
 Transform to Dataset:
 ~~~~~~~~~~
@@ -228,14 +232,14 @@ Last but not least, the wave breaking module provides a routine to track events 
 .. code-block:: python
 
         #filter events
-        f_events = wb.streamers[wb.streamers.mean_var >= 2][::2] #use every second event for clearity
+        f_events = wb.streamers[wb.streamers.mean_var >= 2][::2] #use every second event for clarity
 
         #track events
         wb.event_tracking(f_events, 
                           box = False #if True, a rectangular box is used for the tracking
                           )
 
-The result can be viszalized by plotting the paths of the tracked events:
+The result can be visualized by plotting the paths of the tracked events:
 
 .. code-block:: python
         
