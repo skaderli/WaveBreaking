@@ -1,5 +1,9 @@
 .. image:: https://img.shields.io/pypi/v/wavebreaking.svg
         :target: https://pypi.python.org/pypi/wavebreaking
+        
+.. image:: https://img.shields.io/github/license/skaderli/wavebreaking
+        :target: https://github.com/skaderli/wavebreaking/blob/master/LICENSE
+        :alt: License
 
 ============
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
