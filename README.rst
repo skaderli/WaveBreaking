@@ -4,6 +4,10 @@
 .. image:: https://img.shields.io/github/license/skaderli/wavebreaking
         :target: https://github.com/skaderli/wavebreaking/blob/master/LICENSE
         :alt: License
+        
+.. image:: https://readthedocs.org/projects/wavebreaking/badge/?version=latest
+        :target: https://wavebreaking.readthedocs.io/en/latest/?version=latest
+        :alt: Documentation Status
 
 ============
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
