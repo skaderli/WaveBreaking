@@ -330,7 +330,7 @@ class wavebreaking(object):
         check for 'latitude' dimension and return name
         """
         for dim in self.ds.dims:
-            if (('units' in self.ds[dim].attrs  and
+            if (('units' in self.ds[dim].attrs and
                 self.ds[dim].attrs['units'] in ['degree_north', 'degrees_north']) or
                 dim in ['lat', 'latitude', 'y']):
                 return dim
@@ -572,7 +572,7 @@ class wavebreaking(object):
 
         #map in added indices to the original indices of the grid
         contours_index_original = [np.c_[item[:,0]%self.dims[self._latitude_name], item[:,1]%self.dims[self._longitude_name]] for item in contours_index_expanded]
-        contours_index_original =  [list(dict.fromkeys(map(tuple,item))) for item in contours_index_original]
+        contours_index_original = [list(dict.fromkeys(map(tuple,item))) for item in contours_index_original]
         
         #drop duplicates that have been identified due to the periodicity
         index = np.arange(0,len(contours_index_original))
@@ -770,7 +770,7 @@ class wavebreaking(object):
                 
                 return np.r_[df_contour[int(df.ind1):int(df.ind2)+1].values, np.c_[y,x][mask]]
 
-            streamer_grids = [pd.DataFrame(bp_to_grid(row), columns = ["y", "x"])  for index,row in df_bp.iterrows()]
+            streamer_grids = [pd.DataFrame(bp_to_grid(row), columns = ["y", "x"]) for index,row in df_bp.iterrows()]
             return self.get_events(contour.date, streamer_grids)
     
     def get_overturnings(self, range_group = 500, min_exp = 5):
@@ -844,7 +844,7 @@ class wavebreaking(object):
         ot_borders = [(df_contour[df_contour.x == lon].index[0], df_contour[df_contour.x == lon].index[-1]) for lon in ot_lons]
 
         #(3) store date in a DataFrame
-        df_ot =  pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, item[1],  df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in ot_borders], columns = ["ind1","y1","x1","ind2","y2","x2"])
+        df_ot = pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, item[1], df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in ot_borders], columns = ["ind1","y1","x1","ind2","y2","x2"])
 
         #apply several routines to process the overturning events
         def check_duplicates(df):
@@ -922,7 +922,7 @@ class wavebreaking(object):
                 x, y = x.flatten(), y.flatten()
                 return np.vstack((y,x)).T 
             
-            overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"])  for index,row in df_ot.iterrows()]
+            overturnings_grids = [pd.DataFrame(ot_to_grid(row), columns = ["y", "x"]) for index,row in df_ot.iterrows()]
             return self.get_events(contour.date, overturnings_grids)
         
         
@@ -1028,7 +1028,7 @@ class wavebreaking(object):
 
                 return np.r_[df.coordinates, np.c_[y,x][mask]]
 
-            cutoff_grids = [pd.DataFrame(cutoff_to_grid(row), columns = ["y", "x"])  for index,row in df_co.iterrows()]
+            cutoff_grids = [pd.DataFrame(cutoff_to_grid(row), columns = ["y", "x"]) for index,row in df_co.iterrows()]
             return self.get_events(group.date.iloc[0], cutoff_grids)
         
         
@@ -1056,8 +1056,8 @@ class wavebreaking(object):
             y_original = self.dataset[self._latitude_name].values[df.y.values.astype("int")%self.dims[self._latitude_name]]
             df_coords = list(map(tuple, np.c_[y_original, x_original]))
 
-            com[self._longitude_name]  = self.dataset[self._longitude_name].values[(np.round(com.x)%self.dims[self._longitude_name]).astype("int")]
-            com[self._latitude_name]  = self.dataset[self._latitude_name].values[(np.round(com.y)%self.dims[self._latitude_name]).astype("int")]
+            com[self._longitude_name] = self.dataset[self._longitude_name].values[(np.round(com.x)%self.dims[self._longitude_name]).astype("int")]
+            com[self._latitude_name] = self.dataset[self._latitude_name].values[(np.round(com.y)%self.dims[self._latitude_name]).astype("int")]
 
             #if "mflux" is provided, calculate the intensity
             if "mflux" in self.variables:
