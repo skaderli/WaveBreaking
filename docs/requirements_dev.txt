@@ -21,7 +21,7 @@ shapely
 scikit-learn
 matplotlib
 pyproj
-geos
+pygeos
 cartopy
 seaborn
 
