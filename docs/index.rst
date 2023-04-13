@@ -7,7 +7,7 @@ Welcome to WaveBreaking's documentation!
 
    readme
    installation
-   usage
+   tutorial
    modules
    contributing
    authors
