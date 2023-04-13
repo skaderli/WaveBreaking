@@ -108,8 +108,8 @@ class wavebreaking(object):
             try:
                 self.ds = None
                 self.read(filename, **kwargs)
-            except:
-                raise ValueError("Unkown fileformat. Known formats are netcdf.")
+            except ValueError:
+                print("Unkown fileformat. Known formats are netcdf.")
                 
         wavebreaking.num_of_wavebreaking += 1
     
@@ -275,8 +275,8 @@ class wavebreaking(object):
 
         # set resolution
         if (self._longitude_name and self._latitude_name) is not None:
-            self._dlon =  self._get_resolution(self._longitude_name, force=force)
-            self._dlat =  self._get_resolution(self._latitude_name, force=force)
+            self._dlon = self._get_resolution(self._longitude_name, force=force)
+            self._dlat = self._get_resolution(self._latitude_name, force=force)
 
         if self._time_name is not None:
             self._dtime = self._get_resolution(self._time_name, force=force)
@@ -844,8 +844,7 @@ class wavebreaking(object):
         ot_borders = [(df_contour[df_contour.x == lon].index[0], df_contour[df_contour.x == lon].index[-1]) for lon in ot_lons]
 
         #(3) store date in a DataFrame
-        df_ot =  pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, 
-                            item[1],  df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in ot_borders], columns = ["ind1","y1","x1","ind2","y2","x2"])
+        df_ot =  pd.DataFrame([[item[0], df_contour.iloc[item[0]].y, df_contour.iloc[item[0]].x, item[1],  df_contour.iloc[item[1]].y, df_contour.iloc[item[1]].x] for item in ot_borders], columns = ["ind1","y1","x1","ind2","y2","x2"])
 
         #apply several routines to process the overturning events
         def check_duplicates(df):
@@ -1266,7 +1265,7 @@ class wavebreaking(object):
             cmap = truncate_colormap(plt.get_cmap("RdYlBu_r"), 0.3, 1)
             
         #plot frequencies
-        p = freq.where(freq>0).plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max")
+        p = freq.where(freq>0).plot.contourf(ax=ax, cmap = cmap, levels = levels, transform=data_crs, add_colorbar = False, extend = "max")
         
         #define colorbar
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
@@ -1352,9 +1351,8 @@ class wavebreaking(object):
                 ds = self.dataset.isel({self._time_name:step})
                 ds = xr.concat([ds, ds.isel({self._longitude_name:0}).assign_coords({"lon":ds[self._longitude_name].max()+1})], dim = self._longitude_name)
                 date = pd.to_datetime(str(self.dataset.isel({self._time_name:step})[self._time_name].values)).strftime('%Y-%m-%d')
-            except:
-                errmsg = '{} as input for step is not supported! Step must be either an index or an coordinate of your data!'.format(step)
-                raise ValueError(errmsg)                      
+            except ValueError:
+                print('{} as input for step is not supported! Step must be either an index or an coordinate of your data!'.format(step))                    
 
         #define cartopy projections        
         data_crs = ccrs.PlateCarree()
@@ -1373,9 +1371,9 @@ class wavebreaking(object):
             cmap = "Blues"
             
         #plot variable field, contour line and flag_variable
-        p = ds[variable].plot.contourf(ax=ax, cmap = cmap, levels = levels,  transform=data_crs, add_colorbar = False, extend = "max", alpha = 0.8)
-        c = ds[variable].plot.contour(ax=ax, levels = np.asarray(contour_level).tolist(),  transform=data_crs, linewidths = 2, colors = "black")
-        f = ds[flag_variable].where(ds[flag_variable]>0).plot.contourf(ax=ax, colors = ["white", "gold"], levels = [0,0.5],  transform=data_crs, add_colorbar = False)
+        p = ds[variable].plot.contourf(ax=ax, cmap = cmap, levels = levels, transform=data_crs, add_colorbar = False, extend = "max", alpha = 0.8)
+        c = ds[variable].plot.contour(ax=ax, levels = np.asarray(contour_level).tolist(), transform=data_crs, linewidths = 2, colors = "black")
+        f = ds[flag_variable].where(ds[flag_variable]>0).plot.contourf(ax=ax, colors = ["white", "gold"], levels = [0,0.5], transform=data_crs, add_colorbar = False)
 
         #define colorbar
         cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.015,ax.get_position().height])
@@ -1558,10 +1556,10 @@ class wavebreaking(object):
         
         """
         
-        l = lst
+        elements = lst.copy()
         output = []
-        while len(l)>0:
-            first, *rest = l
+        while len(elements)>0:
+            first, *rest = elements
             first = set(first)
 
             lf = -1
@@ -1577,7 +1575,7 @@ class wavebreaking(object):
                 rest = rest2
 
             output.append(list(first))
-            l = rest
+            elements = rest
             
         return output
 
