@@ -12,40 +12,44 @@ To install WaveBreaking, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install wavebreaking
+    $ pip install wavebreaking ### NOT AVAILABLE YET
 
-This is the preferred method to install WaveBreaking, as it will always install the most recent stable release.
+This is the preferred method to install WaveBreaking, as it will always install the most recent stable release. Your virtual environment is automatically checked for the necessary dependencies. After the installation, you can start calculating wave breaking events by following the `tutorial`_. 
 
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
-
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
+.. _tutorial: https://
 
 From sources
 ------------
 
-The sources for WaveBreaking can be downloaded from the `Github repo`_.
+The sources for WaveBreaking can be downloaded in two different ways. You can either install WaveBreaking directly from the GitHub repository:
 
-You can either clone the public repository:
+..  code-block:: 
 
-.. code-block:: console
+        pip install git+https://github.com/skaderli/WaveBreaking
 
-    $ git clone git://github.com/skaderli/wavebreaking
+Or you can clone the GitHub repository first and then install WaveBreaking locally. First, set the working directory and clone the repository. 
 
-Or download the `tarball`_:
+..  code-block:: 
 
-.. code-block:: console
+        cd /path/to/local/workspace
+        git clone https://github.com/skaderli/WaveBreaking.git
 
-    $ curl -OJL https://github.com/skaderli/wavebreaking/tarball/master
+Second, set up the conda environment and install the necessary dependencies:
 
-Once you have a copy of the source, you can install it with:
+..  code-block:: 
 
-.. code-block:: console
+        conda create -y -n wb_dev
+        conda env update -f environment_dev.yml -n wb_dev
 
-    $ python setup.py install
+Now the environment can be activated and the WaveBreaking package can be locally installed by using the developer mode "-e":
 
+.. code-block::
 
-.. _Github repo: https://github.com/skaderli/wavebreaking
-.. _tarball: https://github.com/skaderli/wavebreaking/tarball/master
+        conda activate wb_dev
+        pip install -e .
+
+To check if the installation was successful, perform some tests:
+
+.. code-block::
+ 
+        python -m pytest
