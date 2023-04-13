@@ -5,15 +5,13 @@
 # Required
 version: 2
 
-conda:
-  environment: environment_dev.yml
-
-# Set the version of Python and other tools you might need
 build:
-  image: latest
-    
-python:
- version: 3.8
+  os: "ubuntu-20.04"
+  tools:
+    python: "mambaforge-4.10"
+
+conda:
+  environment: environment.yml
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
