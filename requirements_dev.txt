@@ -20,5 +20,6 @@ wrf-python
 shapely
 scikit-learn
 matplotlib
+cartopy
 seaborn
 
