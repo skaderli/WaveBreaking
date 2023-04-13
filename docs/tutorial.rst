@@ -7,7 +7,7 @@ This tutorial shows how to calculate Rossby wave breaking events step by step. A
 
         from wavebreaking import wavebreaking
         
-Read data:
+Read data
 ----------
 
 Input data is only accepted in a NetCDF-file with two spatial and one temporal dimension. There are two options to read data: Either directly as a NetCDF-file or as a xarray.Dataset: 
@@ -29,7 +29,7 @@ Input data is only accepted in a NetCDF-file with two spatial and one temporal d
         wb.read(file) #or
         wb.read_xarray(ds)
         
-Data pre-processing:
+Data pre-processing
 ----------     
 
 Optionally, the variable intended for the wave breaking calculations can be smoothed. The smoothing routine applies a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. This routine creates a xarray.DataArray with the variable "smooth_variable". 
@@ -52,7 +52,7 @@ The wavebreaking module can calculate the intensity for each identified event. F
         #access xarray.DataArray
         wb["mflux"]
                                    
-Contour calculation:
+Contour calculation
 ----------
        
 Both Rossby wave breaking indices are based on a contour line representing the dynamical tropopause. The "get_contours()" function calculates the dynamical tropopause on a specific level (commonly the 2 PVU level for Potential Vorticity). If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. This routines creates a pandas.DataFrame with the coordinates and some properties of the contour line.
@@ -66,7 +66,7 @@ Both Rossby wave breaking indices are based on a contour line representing the d
         wb.contours 
         
 
-Index calculation:
+Index calculation
 ----------
 
 Now the index calculation can be performed based on the identified contour lines. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. All index functions create a pd.DataFrame with the coordinates and some properties of the events.
@@ -83,7 +83,7 @@ Now the index calculation can be performed based on the identified contour lines
         wb.overturnings
         wb.cutoffs
 
-Transform to Dataset:
+Transform to Dataset
 ----------
 
 To calculate and visualize the occurrence of Rossby wave breaking, it comes in handy to transform the coordinates of the events into a xarray.Dataset. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to filter the pandas.DataFrame for the desired events (e.g., stratospheric events with a Potential Vorticity value larger than 2 PVU).
@@ -99,7 +99,7 @@ To calculate and visualize the occurrence of Rossby wave breaking, it comes in h
         #access xarray.Dataset
         wb.flag
         
-Visualization: 
+Visualization
 ----------
 
 The wavebreaking module provides two options to do a first visual analysis of the output. Both options are based on the xarray.Dataset with the flagged grid cells from the "to_xarray" function. 
@@ -140,7 +140,7 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 .. image:: plot_climatology.png
     :alt: plot climatology 
     
-Event tracking:
+Event tracking
 ----------
 
 Last but not least, the wave breaking module provides a routine to track events over time. Events that overlap between two time steps receive the same label. Again, it is suggested to filter the events first. This routine adds a column "label" to the events pandas.DataFrame.
