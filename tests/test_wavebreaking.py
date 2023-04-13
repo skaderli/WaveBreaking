@@ -133,14 +133,14 @@ def test_plot_clim(wavebreakings):
     try:
         wavebreakings.set_up()
         wavebreakings.plot_clim(variable = "variable")
-    except:
+    except Exception:
         assert False
         
 def test_plot_step(wavebreakings):
     try:
         wavebreakings.set_up()
         wavebreakings.plot_step(flag_variable = "variable", variable = "variable", contour_level = [2], step = 0)
-    except:
+    except Exception:
         assert False    
 
 def test_plot_tracks(wavebreakings):
@@ -150,5 +150,5 @@ def test_plot_tracks(wavebreakings):
         wavebreakings.get_overturnings()
         wavebreakings.event_tracking(events = wavebreakings.overturnings)
         wavebreakings.plot_tracks(events = wavebreakings.labeled_events)
-    except:
+    except Exception:
         assert False    
