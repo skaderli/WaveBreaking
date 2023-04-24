@@ -1,7 +1,8 @@
 """
 This file is part of WaveBreaking.
 
-WaveBreaking provides indices to detect, classify and track Rossby Wave Breaking (RWB) in climate and weather data.
+WaveBreaking provides indices to detect, classify
+and track Rossby Wave Breaking (RWB) in climate and weather data.
 The tool was developed during my master thesis at the University of Bern.
 Link to thesis: https://occrdata.unibe.ch/students/theses/msc/406.pdf
 
@@ -24,9 +25,9 @@ from wavebreaking.utils.data_utils import check_argument_types, get_dimension_at
 @check_argument_types(["u", "v"], [xr.DataArray, xr.DataArray])
 @get_dimension_attributes("u")
 def calculate_momentum_flux(u, v, *args, **kwargs):
-
     """
-    Calculate the momentum flux derived from the product of the deviations of both wind components from the zonal mean.
+    Calculate the momentum flux derived from the product of the deviations
+    of both wind components from the zonal mean.
 
     Parameters
     ----------
@@ -55,9 +56,9 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 def calculate_smoothed_field(data, passes, *args, **kwargs):
-
     """
-    Calculate smoothed field based on a 5-point smoothing with double-weighted centre and multiple smoothing passes.
+    Calculate smoothed field based on a 5-point smoothing
+    with double-weighted centre and multiple smoothing passes.
     The smoothing routine is based on the wrf.smooth2d function.
 
     Parameters
@@ -77,6 +78,10 @@ def calculate_smoothed_field(data, passes, *args, **kwargs):
     smoothed = data.pad({kwargs["lon_name"]: 5}, mode="wrap")
 
     # perform smoothing and remove wrap
-    smoothed = wrf.smooth2d(smoothed, passes).assign_attrs(data.attrs).isel({kwargs["lon_name"]: slice(5, -5)})
+    smoothed = (
+        wrf.smooth2d(smoothed, passes)
+        .assign_attrs(data.attrs)
+        .isel({kwargs["lon_name"]: slice(5, -5)})
+    )
 
     return smoothed

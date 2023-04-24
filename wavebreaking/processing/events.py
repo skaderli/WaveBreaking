@@ -1,7 +1,8 @@
 """
 This file is part of WaveBreaking.
 
-WaveBreaking provides indices to detect, classify and track Rossby Wave Breaking (RWB) in climate and weather data.
+WaveBreaking provides indices to detect, classify
+and track Rossby Wave Breaking (RWB) in climate and weather data.
 The tool was developed during my master thesis at the University of Bern.
 Link to thesis: https://occrdata.unibe.ch/students/theses/msc/406.pdf
 
@@ -24,7 +25,8 @@ import itertools as itertools
 from wavebreaking.utils.data_utils import (
     check_argument_types,
     check_empty_dataframes,
-    get_dimension_attributes)
+    get_dimension_attributes,
+)
 from wavebreaking.utils import index_utils
 
 
@@ -32,7 +34,6 @@ from wavebreaking.utils import index_utils
 @check_empty_dataframes
 @get_dimension_attributes("data")
 def to_xarray(data, events, name="flag", *args, **kwargs):
-
     """
     Create xarray.Dataset from events stored in a geopandas.GeoDataFrame
     Grid cells where an event is present are flagged with the value 1
@@ -42,26 +43,37 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
         data : xarray.DataArray
             data used for the index calculation
         events : geopandas.GeoDataFrame
-            GeoDataFrame with the date and coordinates for every identified event
+            GeoDataFrame with the date and geometry for each event
         name : string, optional
             name of the xarray variable that is created
 
     Returns
     -------
         flag: xarray.DataArray
-            Dataset where the coordinates of the events are flagged with the value 1
+            Data with events flagged with the value 1
     """
 
     # get coordiantes of all events at the same time step
-    events_concat = pd.concat([pd.DataFrame([{"date": row.date, "y": p.y, "x": p.x} for p in row.geometry.geoms]) for index, row in events.iterrows()])
+    events_concat = pd.concat(
+        [
+            pd.DataFrame(
+                [{"date": row.date, "y": p.y, "x": p.x} for p in row.geometry.geoms]
+            )
+            for index, row in events.iterrows()
+        ]
+    )
 
     # create empty xarray.Dataset with the same dimension as the original Dataset
     data_flagged = xr.zeros_like(data)
 
     # set coordinates of the events to the value 1
-    data_flagged.loc[{kwargs["time_name"]: events_concat.date.to_xarray(),
-                      kwargs["lat_name"]: events_concat.y.to_xarray(),
-                      kwargs["lon_name"]: events_concat.x.to_xarray()}] = np.ones(len(events_concat))
+    data_flagged.loc[
+        {
+            kwargs["time_name"]: events_concat.date.to_xarray(),
+            kwargs["lat_name"]: events_concat.y.to_xarray(),
+            kwargs["lon_name"]: events_concat.x.to_xarray(),
+        }
+    ] = np.ones(len(events_concat))
 
     # change type and name
     data_flagged = data_flagged.astype("int8")
@@ -74,7 +86,6 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
 @check_argument_types(["events"], [pd.DataFrame])
 @check_empty_dataframes
 def track_events(events, time_range):
-
     """
     Temporal tracking of events.
     Events receive the same label if they spacially overlap at step t and at step t+1.
@@ -103,8 +114,15 @@ def track_events(events, time_range):
         dates_dif = (dates - date).astype(int)
         check = (dates_dif >= 0) & (dates_dif <= time_range)
         index_combinations = itertools.combinations(events[check].index, r=2)
-        combine.append([combination for combination in index_combinations
-                        if events.iloc[combination[0]].geometry.intersects(events.iloc[combination[1]].geometry)])
+        combine.append(
+            [
+                combination
+                for combination in index_combinations
+                if events.iloc[combination[0]].geometry.intersects(
+                    events.iloc[combination[1]].geometry
+                )
+            ]
+        )
 
     # combine tracked indices to groups
     combine = index_utils.combine_shared(list(itertools.chain.from_iterable(combine)))
