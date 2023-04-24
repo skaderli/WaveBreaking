@@ -1,5 +1,5 @@
 ==============
-The WaveBreaking Module
+Documentation
 ==============
 
 Spatial pre-processing functions
