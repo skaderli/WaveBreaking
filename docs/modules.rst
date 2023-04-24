@@ -5,9 +5,7 @@ The WaveBreaking Module
 Indices
 -------
 
-.. automodule:: wavebreaking.indices.contour_index
+.. automodule:: wavebreaking.indices.contour_index.calculate_contours
    :members:
-   :imported-members:
    :undoc-members:
    :show-inheritance:
-   :noindex:
