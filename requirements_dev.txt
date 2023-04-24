@@ -1,0 +1,15 @@
+xarray
+netCDF4
+pandas
+geopandas
+scikit-image
+scipy
+tqdm
+wrf-python
+shapely
+scikit-learn
+matplotlib
+cartopy
+pip
+flake8
+tox

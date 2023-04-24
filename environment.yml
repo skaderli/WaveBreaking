@@ -2,8 +2,6 @@ name: wb_dev
 channels:
   - conda-forge
 dependencies:
-  - pip
-  - pytest
   - xarray
   - netCDF4
   - pandas
@@ -16,5 +14,7 @@ dependencies:
   - scikit-learn
   - matplotlib
   - cartopy
+# for testing
+  - pip
   - flake8
   - tox
