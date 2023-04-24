@@ -7,6 +7,7 @@ dependencies:
   - xarray
   - netCDF4
   - pandas
+  - geopandas
   - scikit-image
   - scipy
   - tqdm
