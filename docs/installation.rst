@@ -38,14 +38,14 @@ Second, set up the conda environment and install the necessary dependencies:
 
 ..  code-block:: 
 
-        conda create -y -n wb_dev
-        conda env update -f environment_dev.yml -n wb_dev
+        conda create -y -n wb_env
+        conda env update -f environment.yml -n wb_env
 
 Now the environment can be activated and the WaveBreaking package can be locally installed by using the developer mode "-e":
 
 .. code-block::
 
-        conda activate wb_dev
+        conda activate wb_env
         pip install -e .
 
 To check if the installation was successful, perform some tests:
