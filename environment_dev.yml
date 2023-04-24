@@ -16,3 +16,5 @@ dependencies:
   - scikit-learn
   - matplotlib
   - cartopy
+  - flake8
+  - tox
