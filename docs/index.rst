@@ -31,7 +31,6 @@ Important information:
    :maxdepth: 2
    :caption: Contents:
 
-   readme
    installation
    tutorial
    modules
