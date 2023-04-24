@@ -8,6 +8,10 @@
 .. image:: https://readthedocs.org/projects/wavebreaking/badge/?version=latest
         :target: https://wavebreaking.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
+        
+.. image:: https://www.codefactor.io/repository/github/skaderli/wavebreaking/badge
+   :target: https://www.codefactor.io/repository/github/skaderli/wavebreaking
+   :alt: CodeFactor
 
 ============
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
