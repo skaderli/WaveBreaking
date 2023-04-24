@@ -25,12 +25,14 @@ from skimage import measure
 import functools
 
 from wavebreaking.utils.data_utils import (
-    get_dimension_attributes,
-    add_logger)
+    get_dimension_attributes, 
+    check_argument_types)
 from wavebreaking.utils.index_utils import (
-    iterate_time_dimension)
+    iterate_time_dimension,
+    add_logger)
 
 
+@check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 @add_logger("Calculating contours...")
 @iterate_time_dimension

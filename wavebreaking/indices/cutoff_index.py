@@ -16,6 +16,7 @@ __email__ = "severin.kaderli@unibe.ch"
 
 # import modules
 import numpy as np
+import xarray as xr
 import pandas as pd
 import itertools as itertools
 from tqdm import tqdm
@@ -24,13 +25,16 @@ import shapely.vectorized
 from sklearn.metrics import DistanceMetric
 dist = DistanceMetric.get_metric('haversine')
 
-from wavebreaking.utils.index_utils import properties_per_timestep
+from wavebreaking.utils.index_utils import (
+    properties_per_timestep,
+    add_logger)
 from wavebreaking.utils.data_utils import (
     get_dimension_attributes,
-    add_logger)
+    check_argument_types)
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
 
+@check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 @decorator_contour_calculation
 @add_logger("Calculating cutoffs...")
