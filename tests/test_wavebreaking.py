@@ -34,21 +34,18 @@ tqdm.tqdm = silent_tqdm
 
 from wavebreaking.utils.data_utils import (
     check_argument_types,
-    get_dimension_attributes,
-    add_logger)
+    get_dimension_attributes)
 from wavebreaking.utils.index_utils import (
     properties_per_timestep,
     iterate_time_dimension,
-    combine_shared)
-
+    combine_shared,
+    add_logger)
 from wavebreaking.processing.spatial import (
     calculate_momentum_flux,
     calculate_smoothed_field)
-
 from wavebreaking.processing.events import (
     to_xarray,
     track_events)
-
 from wavebreaking.indices.contour_index import (
     calculate_contours,
     decorator_contour_calculation)

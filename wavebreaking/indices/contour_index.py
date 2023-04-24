@@ -25,7 +25,7 @@ from skimage import measure
 import functools
 
 from wavebreaking.utils.data_utils import (
-    get_dimension_attributes, 
+    get_dimension_attributes,
     check_argument_types)
 from wavebreaking.utils.index_utils import (
     iterate_time_dimension,
