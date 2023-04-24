@@ -40,7 +40,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    description="Detect, classify, and track Rossby Wave Breaking (RWB) in weather and climate data.",
+    description="Detect, classify, and track Rossby Wave Breaking (RWB).",
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
