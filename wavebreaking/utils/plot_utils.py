@@ -77,14 +77,13 @@ def add_circular_boundary(axes):
     return axes.add_patch(mpatches.Circle((0.5, 0.5), radius=0.5, color='k', linewidth=5, fill=False, transform = axes.transAxes))
     
 def add_circular_patch(axes):
-    
+
     """ 
     Define circular patch for NorthPolarStereo projection 
     """
-    
+
     theta = np.linspace(0, 2*np.pi, 100)
     center, radius = [0.5, 0.5], 0.5
     verts = np.vstack([np.sin(theta), np.cos(theta)]).T
     circle = mpath.Path(verts * radius + center)
     return axes.set_boundary(circle, transform=axes.transAxes)
-      
