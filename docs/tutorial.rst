@@ -123,7 +123,7 @@ To analyze a specific large scale situation, the wave breaking events on a singl
                      color_events = "gold", 
                      title = "")
 
-.. image:: docs/plot_step.png
+.. image:: figures/plot_step.png
     :alt: plot step 
     
 The analyze Rossby wave breaking from a climatological perspective, the occurrence (for specific seasons) can be plotted:
@@ -141,7 +141,7 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
                      cmap = None, 
                      title = "")
 
-.. image:: docs/plot_climatology.png
+.. image:: figures/plot_climatology.png
     :alt: plot climatology 
     
 Event tracking:
@@ -171,5 +171,5 @@ The result can be visualized by plotting the paths of the tracked events:
                        labels = True,
                        title = "")
                        
-.. image:: docs/plot_tracks.png
+.. image:: figures/plot_tracks.png
     :alt: plot tracks
