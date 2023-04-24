@@ -30,7 +30,7 @@ The detection of RWB is based on applying a wave breaking index to the dynamical
 .. _`Sprenger et al. 2017`: https://journals.ametsoc.org/view/journals/bams/98/8/bams-d-15-00299.1.xml
 .. _`Barnes and Hartmann (2012)`: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2012JD017469
 
-The tool is designed to analyze gridded data provided as an `xarray.Dataset <https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html>`_. Output is provided either in a `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ or in an `xarray.Dataset <https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html>`_.
+The tool is designed to analyze gridded data provided as an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_. Output is provided either in a `geopandas.GeoDataFrame <https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.html>`_ or in an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_.
 
 The class structure and parts of the tracking routines are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
