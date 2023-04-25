@@ -1,4 +1,4 @@
-"""""" 
+""""""
 """
 This file is part of WaveBreaking.
 
@@ -126,7 +126,7 @@ def plot_clim(
 
     # define levels
     if levels is None:
-        levels = plot_utils.get_levels(freq.max())
+        levels = plot_utils.get_levels(freq.min(), freq.max())
 
     # define cmap
     if cmap is None:
@@ -176,13 +176,13 @@ def plot_step(
     flag_data,
     data,
     step,
-    contour_level,
+    contour_levels,
     proj=None,
     size=(12, 8),
     periodic=True,
     labels=True,
     levels=None,
-    cmap="Blues",
+    cmap="RdBu_r",
     color_events="gold",
     title="",
     *args,
@@ -199,8 +199,8 @@ def plot_step(
             Data that has been used to calculate the contours and the indices
         step : int or string
             index or name of a time step in the xarray.Dataset
-        contour_level : list
-            list of contour levels that are shown in the plot
+        contour_level : array_like
+            contour levels that are shown in the plot
         proj : cartopy.crs, optional
             cartopy projection
         size : tuple of integers, optional
@@ -268,7 +268,13 @@ def plot_step(
 
     # define levels
     if levels is None:
-        levels = plot_utils.get_levels(data.max())
+        levels = plot_utils.get_levels(ds[variable].min(), ds[variable].max())
+
+    # check contour levels
+    try:
+        iter(contour_levels)
+    except Exception:
+        contour_levels = [contour_levels]
 
     # plot variable field, contour line and flag_variable
     p = ds[variable].plot.contourf(
@@ -277,15 +283,15 @@ def plot_step(
         levels=levels,
         transform=data_crs,
         add_colorbar=False,
-        extend="max",
         alpha=0.8,
     )
     ds[variable].plot.contour(
         ax=ax,
-        levels=np.asarray(contour_level).tolist(),
         transform=data_crs,
+        levels=contour_levels,
+        linestyles="-",
         linewidths=2,
-        colors="black",
+        colors="#000000"
     )
     ds["flag"].where(ds["flag"] > 0).plot.contourf(
         ax=ax,
@@ -415,11 +421,11 @@ def plot_tracks(
                     ax=ax, color="black", transform=data_crs, alpha=0.2, markersize=3
                 )
 
-            max_lon = max(data[kwargs["lon_name"]].values) + 1
+            max_lon = max(data[kwargs["lon_name"]].values) + kwargs["dlon"]
             min_lon = min(data[kwargs["lon_name"]].values)
 
             # check if the path needs to be split due to a crossing of the date border
-            diffs = abs(np.diff(lons)) > kwargs["nlon"] / 2
+            diffs = abs(np.diff(lons)) > (max_lon - min_lon / 2)
             split = [[i - 1, i] for i in np.where(diffs)[0] + 1]
             no_split = [[i - 1, i] for i in np.where(~diffs)[0] + 1]
 
@@ -436,7 +442,7 @@ def plot_tracks(
                 ev_seg = np.asarray(group[item[0]: item[1] + 1].com.tolist())
 
                 # upstream split
-                if np.diff(ev_seg[:, 1]) < 0:
+                if np.diff(ev_seg[:, 0]) < 0:
                     lons_plot = [(ev_seg[0, 0], max_lon), (min_lon, ev_seg[1, 0])]
                     lon_diffs = np.diff(lons_plot)
 
