@@ -61,8 +61,8 @@ def calculate_streamers(
     ----------
         data : xarray.DataArray
             data for the contour and streamer calculation
-        contour_level : int or float
-            level of the contours
+        contour_levels : array_like
+            levels for contour calculation
         geo_dis : int or float, optional
             Maximal geographic distance between two contour points that describe a streamer
         cont_dis : int or float, optional
@@ -70,7 +70,7 @@ def calculate_streamers(
         intensity : xarray.DataArray, optional
             data for the intensity calculation (hint: use wb_spatial.calculate_momentum_flux)
         periodic_add: int or float, optional
-            number of longitudes in degree to expand the dataset
+            number of longitudes in degrees to expand the dataset
             to correctly capture undulations at the date border
             if the input field is not periodic, use periodic_add = 0
 
@@ -100,13 +100,17 @@ def calculate_streamers(
     ):
         # calculate all possible basepoints combinations
         # (1) get coordinates of the contour points
-        df_contour = pd.DataFrame([{"y": p.y, "x": p.x} for p in row.geometry.geoms])
+        contour_index = pd.DataFrame(
+            [{"y": p.y, "x": p.x} for p in row.geometry.geoms]
+        ).astype("int")
         contour_line = LineString(row.geometry.geoms)
+        contour_coords = np.c_[
+            data[kwargs["lat_name"]].values[contour_index.y],
+            data[kwargs["lon_name"]].values[contour_index.x % kwargs["nlon"]],
+        ]
 
         # (2) calculate geographic distance between all contour coordinates
-        geo_matrix = np.triu(
-            (dist.pairwise((np.radians(df_contour.loc[:, ["y", "x"]]))) * 6371)
-        )
+        geo_matrix = dist.pairwise((np.radians(contour_coords))) * 6371
 
         # (3) calculate the distance connecting all combinations of contour points
         on = np.insert(np.diagonal(geo_matrix, 1), 0, 0)
@@ -119,13 +123,13 @@ def calculate_streamers(
 
         # (5) store the coordinates of the point combinations in a DataFrame
         df1 = (
-            df_contour[["y", "x"]]
+            contour_index[["y", "x"]]
             .iloc[check[:, 0]]
             .reset_index()
             .rename(columns={"y": "y1", "x": "x1", "index": "ind1"})
         )
         df2 = (
-            df_contour[["y", "x"]]
+            contour_index[["y", "x"]]
             .iloc[check[:, 1]]
             .reset_index()
             .rename(columns={"y": "y2", "x": "x2", "index": "ind2"})
@@ -144,7 +148,7 @@ def calculate_streamers(
 
             # drop duplicates after mapping the coordinates to the original grid
             temp = pd.concat(
-                [df.y1, df.x1 % kwargs["nlat"], df.y2, df.x2 % kwargs["nlon"]], axis=1
+                [df.y1, df.x1 % kwargs["nlon"], df.y2, df.x2 % kwargs["nlon"]], axis=1
             )
             temp = temp[temp.duplicated(keep=False)]
 
@@ -247,18 +251,21 @@ def calculate_streamers(
             Extract all grid cells that are enclosed by the path of a streamer
             """
 
-            # map the streamer on the original grid
+            # map the streamer on the index grid
             x, y = np.meshgrid(
                 np.arange(0, kwargs["nlon"] + periodic_add),
                 np.arange(0, kwargs["nlat"]),
             )
             x, y = x.flatten(), y.flatten()
+
+            # get mask of streamer
             mask = shapely.vectorized.contains(
-                Polygon(np.array(df_contour[int(df.ind1): int(df.ind2) + 1])), y, x
+                Polygon(np.array(contour_index[int(df.ind1): int(df.ind2) + 1])), y, x
             )
 
+            # return index coordinates of the streamer
             return np.r_[
-                df_contour[int(df.ind1): int(df.ind2) + 1].values, np.c_[y, x][mask]
+                contour_index[int(df.ind1): int(df.ind2) + 1].values, np.c_[y, x][mask]
             ]
 
         # return the result in a DataFrame
@@ -266,12 +273,13 @@ def calculate_streamers(
             streamers.append(pd.DataFrame([]))
         else:
             streamer_grids = [
-                pd.DataFrame(bp_to_grid(row), columns=["y", "x"]).astype("int")
+                pd.DataFrame(bp_to_grid(row).astype("int"), columns=["y", "x"])
                 for index, row in df_bp.iterrows()
             ]
             streamers.append(
                 properties_per_timestep(
                     row.date,
+                    row.level,
                     streamer_grids,
                     data,
                     intensity,

@@ -41,8 +41,8 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 @add_logger("Calculating overturnings...")
 def calculate_overturnings(
     data,
-    contour_level,
-    range_group=500,
+    contour_levels,
+    range_group=5,
     min_exp=5,
     intensity=None,
     periodic_add=120,
@@ -61,16 +61,16 @@ def calculate_overturnings(
     ----------
         data : xarray.DataArray
             data for the contour and overturning calculation
-        contour_level : int or float
-            level of the contours
+        contour_levels : array_like
+            levels for contour calculation
         range_group : int or float, optional
-            Maximal distance in which two overturning events are grouped
+            Maximal degrees in the longitudinal direction in which two overturning are grouped
         min_exp : int or float, optional
             Minimal longitudinal expansion of an overturning event
         intensity : xarray.DataArray, optional
             data for the intensity calculation (hint: use wb_spatial.calculate_momentum_flux)
         periodic_add: int or float, optional
-            number of longitudes in degree to expand the dataset
+            number of longitudes in degrees to expand the dataset
             to correctly capture undulations at the date border
             if the input field is not periodic, use periodic_add = 0
 
@@ -100,160 +100,71 @@ def calculate_overturnings(
     ):
         # calculate all overturning longitudes
         # (1) select the contour points and count the longitudes
-        df_contour = pd.DataFrame([{"y": p.y, "x": p.x} for p in row.geometry.geoms])
-        lons, counts = np.unique(df_contour.x, return_counts=True)
+        contour_index = pd.DataFrame([{"y": p.y, "x": p.x} for p in row.geometry.geoms])
+        lons, counts = np.unique(contour_index.x, return_counts=True)
 
         # (2) only keep longitudes that appear at least 3 times
-        # and extract the first and last contour point at each of these longitudes
-        ot_lons = lons[counts >= 3]
-        ot_borders = [
-            (
-                df_contour[df_contour.x == lon].index[0],
-                df_contour[df_contour.x == lon].index[-1],
-            )
-            for lon in ot_lons
-        ]
+        # and create add same label if they are closer than
+        # the parameter range_group
+        ot_lons = pd.DataFrame({"lon": lons[counts >= 3]})
+        ot_lons["label"] = (ot_lons.diff() > range_group / kwargs["dlon"]).cumsum()
 
-        # (3) store date in a DataFrame
-        df_ot = pd.DataFrame(
-            [
-                [
-                    item[0],
-                    df_contour.iloc[item[0]].y,
-                    df_contour.iloc[item[0]].x,
-                    item[1],
-                    df_contour.iloc[item[1]].y,
-                    df_contour.iloc[item[1]].x,
-                ]
-                for item in ot_borders
-            ],
-            columns=["ind1", "y1", "x1", "ind2", "y2", "x2"],
-        )
+        # (3) extract min and max longitude of each group
+        groups = ot_lons.groupby("label")
+        df_ot = groups.agg(["min", "max"]).astype("int").reset_index(drop=True)
+        df_ot.columns = ["min_lon", "max_lon"]
 
         def check_duplicates(df):
             """
-            Check if there are overturning longitude duplicates
-            due to the periodic expansion in the longitudinal direction
+            Check if there are cutoff duplicates due to the periodic expansion
             """
 
-            # drop duplicates after mapping the coordinates to the original grid
-            temp = pd.concat(
-                [df.y1, df.x1 % kwargs["nlat"], df.y2, df.x2 % kwargs["nlon"]], axis=1
-            )
-            temp = temp[temp.duplicated(keep=False)]
-            if len(temp) == 0:
-                check = []
-            else:
-                check = list(
-                    np.asarray(
-                        temp.groupby(list(temp))
-                        .apply(lambda x: tuple(x.index))
-                        .tolist()
-                    )[:, 1]
-                )
-
-            return df.drop(check)
-
-        def check_joining(df):
-            """
-            Check for overlapping of the contour segment described by overturning borders
-            """
-
-            # combine overturning longitudes that share contour points in there segment
-            ranges = [range(int(r2.ind1), int(r2.ind2) + 1) for i2, r2 in df.iterrows()]
-            index_combinations = np.asarray(
-                list(itertools.combinations_with_replacement(df.index, r=2))
-            )
-            check_join = [
-                not elem
-                for elem in [
-                    set(ranges[item[0]]).isdisjoint(ranges[item[1]])
-                    for item in index_combinations
-                ]
-            ]
-
-            groups = combine_shared(index_combinations[check_join])
-            idx = [
-                (df.iloc[item].ind1.min(), df.iloc[item].ind2.max()) for item in groups
-            ]
-
-            return pd.DataFrame(
-                [
-                    [
-                        item[0],
-                        df_contour.iloc[item[0]].y,
-                        df_contour.iloc[item[0]].x,
-                        item[1],
-                        df_contour.iloc[item[1]].y,
-                        df_contour.iloc[item[1]].x,
-                    ]
-                    for item in idx
-                ],
-                columns=["ind1", "y1", "x1", "ind2", "y2", "x2"],
-            )
-
-        def check_distance(df):
-            """
-            Combine overturning events if they are closer than range_group
-            """
-
-            # calculate distance on the contour line between the overturning events
-            geo_matrix = np.triu(
-                (
-                    dist.pairwise(
-                        np.radians(df.loc[:, ["y2", "x2"]]),
-                        np.radians(df.loc[:, ["y1", "x1"]]),
-                    )
-                    * 6371
-                )
-            )
-            indices_check_dis = [
-                (i, j)
-                for i, j in itertools.combinations_with_replacement(df.index, r=2)
-                if geo_matrix[i, j] < range_group
-            ]
-
-            groups = combine_shared(indices_check_dis + [(i, i) for i in df.index])
-            idx = [
-                (df.iloc[item].ind1.min(), df.iloc[item].ind2.max()) for item in groups
-            ]
-
-            return pd.DataFrame(
-                [
-                    [
-                        item[0],
-                        df_contour.iloc[item[0]].y,
-                        df_contour.iloc[item[0]].x,
-                        item[1],
-                        df_contour.iloc[item[1]].y,
-                        df_contour.iloc[item[1]].x,
-                    ]
-                    for item in idx
-                ],
-                columns=["ind1", "y1", "x1", "ind2", "y2", "x2"],
-            )
-
-        def check_expansion(df):
-            """
-            Drop overturning events that don't have a longitudinal expansion larger than min_exp
-            """
-
-            # calculate the longitudinal expansion
-            check_exp = [
-                (
-                    max(df_contour[int(row.ind1): int(row.ind2) + 1].x)
-                    - min(df_contour[int(row.ind1): int(row.ind2) + 1].x)
-                )
-                > min_exp
+            temp = [
+                np.array(range(row.min_lon, row.max_lon + 1)) % kwargs["nlon"]
                 for index, row in df.iterrows()
             ]
-            return df[check_exp]
 
-        # apply all four routines and stop if no overturning events are left after a routine
-        routines = [check_duplicates, check_joining, check_distance, check_expansion]
+            index_combinations = list(itertools.permutations(df.index, r=2))
+            check = [
+                item
+                for item in index_combinations
+                if set(temp[item[0]]).issubset(set(temp[item[1]]))
+            ]
+
+            drop = []
+            for item in check:
+                lens = [len(temp[i]) for i in item]
+
+                if lens[0] == lens[1]:
+                    drop.append(max(item))
+                else:
+                    drop.append(item[np.argmin(lens)])
+
+            return df[~df.reset_index(drop=True).index.isin(drop)]
+
+        def check_expansion(df):
+            exp_lon = df.max_lon - df.min_lon
+            return df[exp_lon >= min_exp / kwargs["dlon"]]
+
+        def find_lat_expansion(df):
+            lats = [
+                contour_index[
+                    contour_index.x.isin(range(row.min_lon, row.max_lon + 1))
+                ].y
+                for index, row in df.iterrows()
+            ]
+            ot_lats = pd.DataFrame(
+                [(item.min(), item.max()) for item in lats],
+                columns=["min_lat", "max_lat"],
+            ).astype("int")
+
+            return pd.concat([df, ot_lats], axis=1)
+
+        # apply all three routines and stop if no overturning events are left after a routine
+        routines = [check_duplicates, check_expansion, find_lat_expansion]
 
         i = 0
-        while len(df_ot.index) > 0 and i <= 3:
+        while len(df_ot.index) > 0 and i <= 2:
             df_ot = routines[i](df_ot).reset_index(drop=True)
             i += 1
 
@@ -264,10 +175,9 @@ def calculate_overturnings(
 
             # map the overturning events on the original grid,
             # represented by a rectangle around the event
-            temp = df_contour[int(df.ind1): int(df.ind2) + 1]
             x, y = np.meshgrid(
-                range(int(min(temp.x)), int(max(temp.x)) + 1),
-                range(int(min(temp.y)), int(max(temp.y)) + 1),
+                range(df.min_lon, df.max_lon + 1),
+                range(df.min_lat, df.max_lat + 1),
             )
             x, y = x.flatten(), y.flatten()
             return np.vstack((y, x)).T
@@ -283,6 +193,7 @@ def calculate_overturnings(
             overturnings.append(
                 properties_per_timestep(
                     row.date,
+                    row.level,
                     overturning_grids,
                     data,
                     intensity,
