@@ -23,13 +23,21 @@ import matplotlib.patches as mpatches
 import matplotlib.path as mpath
 
 
-def get_levels(max_freq):
+def get_levels(min_freq, max_freq):
     """
     Define default levels
     """
 
     max_level = np.round(max_freq * 2) / 2
-    return set(np.arange(0, max_level, np.round(max_level / 7 * 2) / 2).tolist())
+    min_level = np.round(min_freq * 2) / 2
+
+    if min_level >= 0:
+        levels = np.arange(0, max_level, np.round(max_level / 7 * 2) / 2).tolist()
+    else:
+        bound = max([max_level, abs(min_level)])
+        levels = np.arange(0, bound, np.round(max_level / 7 * 2) / 2).tolist()
+        levels += [-x for x in levels]
+    return sorted(set(levels))
 
 
 def get_new_cmap(color_palette):

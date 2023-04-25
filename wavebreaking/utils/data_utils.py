@@ -8,8 +8,7 @@ Link to thesis: https://occrdata.unibe.ch/students/theses/msc/406.pdf
 
 ---
 
-Definition of data_class. The class structure is based on
-the ConTrack - Contour Tracking tool developed by Daniel Steinfeld.
+Check input data and arguments
 """
 
 __author__ = "Severin Kaderli"
@@ -27,7 +26,9 @@ warnings.filterwarnings("ignore")
 
 
 def check_argument_types(arguments, types):
-    """decorator to check the type of function arguments"""
+    """
+    decorator to check the type of function arguments
+    """
 
     def decorator(func):
         @functools.wraps(func)
@@ -80,12 +81,13 @@ def get_time_name(data):
     for dim in data.dims:
         if (
             ("units" in data[dim].attrs and "since" in data[dim].attrs["units"])
-            or ("units" in data[dim].encoding and "since" in data[dim].encoding["units"])
+            or (
+                "units" in data[dim].encoding and "since" in data[dim].encoding["units"]
+            )
             or (dim in ["time"])
         ):
             return dim
 
-    # no 'time' dimension found
     errmsg = "'time' dimension (dtype='datetime64[ns]') not found."
     hint = " Add time dimension with xarray.DataArray.expand_dims('time')."
     raise ValueError(errmsg + hint)
@@ -103,7 +105,6 @@ def get_lon_name(data):
         ) or dim in ["lon", "longitude", "x"]:
             return dim
 
-    # no 'longitude' dimension found
     errmsg = "'longitude' dimension (units='degrees_east') not found."
     raise ValueError(errmsg)
 
@@ -120,7 +121,6 @@ def get_lat_name(data):
         ) or dim in ["lat", "latitude", "y"]:
             return dim
 
-    # no 'latitude' dimension found
     errmsg = "latitude' dimension (units='degrees_north') not found."
     raise ValueError(errmsg)
 
@@ -156,16 +156,23 @@ def get_dimension_attributes(arg_name):
             else:
                 data = args[0]
 
-            kwargs["time_name"] = get_time_name(data)
-            kwargs["lon_name"] = get_lon_name(data)
-            kwargs["lat_name"] = get_lat_name(data)
+            names = ["time_name", "lon_name", "lat_name"]
+            sizes = ["ntime", "nlon", "nlat"]
+            resolutions = ["dlon", "dlat"]
 
-            kwargs["ntime"] = len(data[kwargs["time_name"]])
-            kwargs["nlon"] = len(data[kwargs["lon_name"]])
-            kwargs["nlat"] = len(data[kwargs["lat_name"]])
+            get_dims = [get_time_name, get_lon_name, get_lat_name]
 
-            kwargs["dlat"] = get_spatial_resolution(data, kwargs["lon_name"])
-            kwargs["dlon"] = get_spatial_resolution(data, kwargs["lat_name"])
+            for name, get_dim in zip(names, get_dims):
+                if name not in kwargs:
+                    kwargs[name] = get_dim(data)
+
+            for size, name in zip(sizes, names):
+                if size not in kwargs:
+                    kwargs[size] = len(data[kwargs[name]])
+
+            for res, name in zip(resolutions, names[1:]):
+                if res not in kwargs:
+                    kwargs[res] = get_spatial_resolution(data, kwargs[name])
 
             return func(*args, **kwargs)
 

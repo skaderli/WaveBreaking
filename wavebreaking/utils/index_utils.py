@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 
-def properties_per_timestep(date, lodf, data, intensity, periodic_add, *args, **kwargs):
+def properties_per_timestep(date, level, lodf, data, intensity, periodic_add, *args, **kwargs):
     """
     This is an internal function to calculate several properties of the identified events.
     """
@@ -77,7 +77,6 @@ def properties_per_timestep(date, lodf, data, intensity, periodic_add, *args, **
             2,
         )
 
-        # map coordinates of the event to the original grid
         x_original = data[kwargs["lon_name"]].values[
             df.x.values.astype("int") % kwargs["nlon"]
         ]
@@ -87,20 +86,18 @@ def properties_per_timestep(date, lodf, data, intensity, periodic_add, *args, **
         geo_mp = MultiPoint(np.c_[x_original, y_original])
 
         com_x = data[kwargs["lon_name"]].values[
-            (np.round(com.x) % kwargs["nlon"]).astype("int")
+            (np.round(com.x, 2) % kwargs["nlon"]).astype("int")
         ]
-        com_y = data[kwargs["lat_name"]].values[
-            (np.round(com.y) % kwargs["nlat"]).astype("int")
-        ]
+        com_y = data[kwargs["lat_name"]].values[np.round(com.y, 2).astype("int")]
 
         prop_dict = {
             "date": date,
+            "level": level,
             "com": (com_x, com_y),
             "mean_var": mean_var,
             "area": area,
         }
 
-        # if intensity is provided
         if "intensity" in ds.variables:
             prop_dict["intensity"] = np.round(
                 np.sum((temp.weight * temp.intensity).values) / area, 2
@@ -153,19 +150,36 @@ def iterate_time_dimension(func):
     """
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if "data" in kwargs:
-            data = kwargs["data"]
-
-        else:
-            data = args[0]
-
+    def wrapper(data, contour_levels, *args, **kwargs):
         steps = data[kwargs["time_name"]]
         repeat_func = []
 
         for step in tqdm(steps, leave=True, position=0):
             kwargs["step"] = step
-            repeat_func.append(func(*args, **kwargs))
+            repeat_func.append(func(data, contour_levels, *args, **kwargs))
+
+        return pd.concat(repeat_func).reset_index(drop=True)
+
+    return wrapper
+
+
+def iterate_contour_levels(func):
+    """
+    decorator to iterate function over contour levels
+    """
+
+    @functools.wraps(func)
+    def wrapper(data, contour_levels, *args, **kwargs):
+        repeat_func = []
+
+        try:
+            iter(contour_levels)
+        except Exception:
+            contour_levels = [contour_levels]
+
+        for level in contour_levels:
+            kwargs["level"] = level
+            repeat_func.append(func(data, contour_levels, *args, **kwargs))
 
         return pd.concat(repeat_func).reset_index(drop=True)
 
