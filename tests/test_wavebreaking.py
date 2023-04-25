@@ -37,6 +37,7 @@ from wavebreaking.utils.data_utils import check_argument_types, get_dimension_at
 from wavebreaking.utils.index_utils import (
     properties_per_timestep,
     iterate_time_dimension,
+    iterate_contour_levels, 
     combine_shared,
     add_logger,
 )
@@ -119,11 +120,22 @@ class test_index_utils(unittest.TestCase):
     def test_iterate_time_dimension(self):
         @get_dimension_attributes("data")
         @iterate_time_dimension
-        def to_be_decorated(data, *args, **kwargs):
+        def to_be_decorated(data, contour_levels, *args, **kwargs):
             return pd.DataFrame([kwargs["step"].values], columns=["time"])
 
         df_check = data.time.to_dataframe().reset_index(drop=True)
-        self.assertEqual(True, to_be_decorated(data.variable).equals(df_check))
+        self.assertEqual(True, to_be_decorated(data.variable, 2).equals(df_check))
+
+
+    def test_iterate_contour_levels(self):
+        @get_dimension_attributes("data")
+        @iterate_contour_levels
+        def to_be_decorated(data, contour_levels, *args, **kwargs):
+            return pd.DataFrame([kwargs["level"]], columns=["levels"])
+
+        df_check = pd.DataFrame([-2, 2], columns=["levels"])
+        self.assertEqual(True, to_be_decorated(data.variable, [-2, 2]).equals(df_check))
+        
 
     def test_combine_shared(self):
         list_in = [[1, 2, 3], [2, 3, 4], [5, 6]]
@@ -135,6 +147,7 @@ class test_index_utils(unittest.TestCase):
 
         df_check = properties_per_timestep(
             "1900-01-01",
+            2,
             [df_in],
             data.variable,
             data.variable,
@@ -147,7 +160,7 @@ class test_index_utils(unittest.TestCase):
         )
 
         self.assertIs(type(df_check), gpd.GeoDataFrame)
-        self.assertEqual(len(df_check.columns), 6)
+        self.assertEqual(len(df_check.columns), 7)
 
 
 class test_spatial(unittest.TestCase):
@@ -191,14 +204,14 @@ class test_indices(unittest.TestCase):
     def test_contour_index(self):
         contours_coords = calculate_contours(
             data=data.variable,
-            contour_level=2,
+            contour_levels=2,
             periodic_add=120,
             original_coordinates=True,
         )
 
         contours_index = calculate_contours(
             data=data.variable,
-            contour_level=2,
+            contour_levels=2,
             periodic_add=120,
             original_coordinates=False,
         )
@@ -211,7 +224,7 @@ class test_indices(unittest.TestCase):
         )
         self.assertEqual(min([p.x for p in contours_index.iloc[0].geometry.geoms]), 0)
 
-        cols = ["date", "exp_lon", "mean_lat", "geometry"]
+        cols = ["date", "level", "exp_lon", "mean_lat", "geometry"]
         self.assertEqual(contours_coords.columns.to_list(), cols)
         self.assertEqual(contours_index.columns.to_list(), cols)
 
@@ -224,16 +237,17 @@ class test_indices(unittest.TestCase):
             self.assertIs(type(contours), gpd.GeoDataFrame)
             self.assertEqual(min([p.x for p in contours.iloc[0].geometry.geoms]), 0)
             self.assertEqual(
-                contours.columns.to_list(), ["date", "exp_lon", "mean_lat", "geometry"]
+                contours.columns.to_list(), 
+                ["date", "level", "exp_lon", "mean_lat", "geometry"]
             )
 
-        to_be_decorated(data.variable, contour_level=2)
+        to_be_decorated(data.variable, contour_levels=2)
 
     @disablelogging
     def test_streamer_index(self):
         streamers = calculate_streamers(
             data=data.variable,
-            contour_level=2,
+            contour_levels=2,
             geo_dis=800,
             cont_dis=1200,
             intensity=data.variable,
@@ -244,15 +258,15 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(streamers), 20)
         self.assertEqual(
             streamers.columns.to_list(),
-            ["date", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
         )
 
     @disablelogging
     def test_overturning_index(self):
         overturnings = calculate_overturnings(
             data=data.variable,
-            contour_level=2,
-            range_group=500,
+            contour_levels=2,
+            range_group=5,
             min_exp=5,
             intensity=data.variable,
             periodic_add=120,
@@ -262,14 +276,14 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(overturnings), 12)
         self.assertEqual(
             overturnings.columns.to_list(),
-            ["date", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
         )
 
     @disablelogging
     def test_cutoff_index(self):
         cutoffs = calculate_cutoffs(
             data=data.variable,
-            contour_level=2,
+            contour_levels=2,
             min_exp=5,
             intensity=data.variable,
             periodic_add=120,
@@ -279,7 +293,7 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(cutoffs), 10)
         self.assertEqual(
             cutoffs.columns.to_list(),
-            ["date", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
         )
 
 
