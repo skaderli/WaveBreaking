@@ -27,18 +27,23 @@ from skimage import measure
 import functools
 
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
-from wavebreaking.utils.index_utils import iterate_time_dimension, add_logger
+from wavebreaking.utils.index_utils import (
+    iterate_time_dimension,
+    iterate_contour_levels,
+    add_logger,
+)
 
 
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 @add_logger("Calculating contours...")
 @iterate_time_dimension
+@iterate_contour_levels
 def calculate_contours(
-    data, contour_level, periodic_add=120, original_coordinates=True, *args, **kwargs
+    data, contour_levels, periodic_add=120, original_coordinates=True, *args, **kwargs
 ):
     """
-    Calculate contour lines of a specific level at each time step.
+    Calculate contour lines for a set of contour levels
     The calculations are based on the measure.find_contours module.
     If periodic_add is provided, the data array is expanded in the longitudinal direction
     and undulations at the date border are correctly captured.
@@ -47,10 +52,10 @@ def calculate_contours(
     ----------
         data : xarray.DataArray
             data for the contour calculation
-        contour_level : int or float
-            level of the contours
+        contour_levels : array_like
+            levels for contour calculation
         periodic_add: int or float, optional
-            number of longitudes in degree to expand the dataset to
+            number of longitudes in degrees to expand the dataset to
             correctly capture undulations at the date border
             if the input field is not periodic, use periodic_add = 0
         original_coordinates: bool, optional
@@ -69,7 +74,7 @@ def calculate_contours(
 
     # select variable and time step for the contour calculation
     ds = data.sel({kwargs["time_name"]: kwargs["step"]})
-    date = pd.to_datetime(ds.time.values).strftime("%Y-%m-%dT%H")
+    date = pd.to_datetime(ds[kwargs["time_name"]].values).strftime("%Y-%m-%dT%H")
 
     # expand field for periodicity
     ds = xr.concat(
@@ -78,7 +83,7 @@ def calculate_contours(
     )
 
     # get contours (indices in array coordinates)
-    contours_from_measure = measure.find_contours(ds.values, contour_level)
+    contours_from_measure = measure.find_contours(ds.values, kwargs["level"])
 
     # contours in indices for wave breaking calculation
     contours_index_expanded = [
@@ -96,7 +101,14 @@ def calculate_contours(
         geo_mp = [MultiPoint(coords[:, ::-1]) for coords in list_of_arrays]
 
         gdf = gpd.GeoDataFrame(
-            pd.DataFrame({"date": date, "exp_lon": exp_lon, "mean_lat": mean_lat}),
+            pd.DataFrame(
+                {
+                    "date": date,
+                    "level": kwargs["level"],
+                    "exp_lon": exp_lon,
+                    "mean_lat": mean_lat,
+                }
+            ),
             geometry=geo_mp,
         )
 
@@ -169,7 +181,7 @@ def decorator_contour_calculation(func):
     @functools.wraps(func)
     def wrapper(
         data,
-        contour_level,
+        contour_levels,
         periodic_add=120,
         original_coordinates=False,
         *args,
@@ -177,9 +189,9 @@ def decorator_contour_calculation(func):
     ):
         # pass contours to the wrapped function as a key word argument
         kwargs["contours"] = calculate_contours(
-            data, contour_level, periodic_add, original_coordinates
+            data, contour_levels, periodic_add, original_coordinates
         )
 
-        return func(data, contour_level, *args, **kwargs)
+        return func(data, contour_levels, *args, **kwargs)
 
     return wrapper
