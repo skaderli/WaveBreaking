@@ -19,9 +19,9 @@ WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 
 .. start_intro
 
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/readme.gif
-    :alt: wavebreaking gif
-    
+.. image:: ../main/docs/figures/readme.gif
+    :alt: readme gif
+        
 WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example the 2 Potential Vorticity Units (PVU) contour line in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of RWB events such as area and intensity are calculated. The event tracking provides information about the temporal evolution of the RWB events. Finally, the implemented plotting methods allow for a first visualization. 
 
 The detection of RWB is based on applying a RWB index to the dynamical tropopause. The WaveBreaking package provides three different RWB indices:
