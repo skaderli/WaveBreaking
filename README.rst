@@ -22,11 +22,11 @@ WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 .. image:: docs/figures/readme.gif
     :alt: wavebreaking gif
     
-WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of the breaking events such as area and intensity are calculated. The tracking routine provides information about the temporal evolution of the wave breaking events. Finally, the implemented plotting methods allow for a first visualization. 
+WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example the 2 Potential Vorticity Units (PVU) contour line in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of RWB events such as area and intensity are calculated. The event tracking provides information about the temporal evolution of the RWB events. Finally, the implemented plotting methods allow for a first visualization. 
 
-The detection of RWB is based on applying a wave breaking index to the dynamical tropopause. The WaveBreaking package provides to different RWB indices:
+The detection of RWB is based on applying a RWB index to the dynamical tropopause. The WaveBreaking package provides three different RWB indices:
 
-* **Streamer Index:** The streamer index is based on work by `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_). Streamers are elongated structures present on the contour line the represents the dynamical tropopause. They can be described by a pair of contour points that are close together in their geographical distance but far apart in their distance connecting the points on the contour. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+* **Streamer Index:** The streamer index is based on work by `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_). Streamers are elongated structures present on the contour line that represents the dynamical tropopause. They can be described by a pair of contour points that are close together considering their geographical distance but far apart considering their distance connecting the points on the contour. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
 * **Overturning Index:** The overturning index is based on work by `Barnes and Hartmann (2012)`_. This index identifies overturning structures of the contour line that represents the dynamical tropopause. An overturning of the contour line is present if the contour intersects at least three times with the same longitude. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
@@ -38,7 +38,7 @@ The detection of RWB is based on applying a wave breaking index to the dynamical
 
 The tool is designed to analyze gridded data provided as an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_. Output is provided either in a `geopandas.GeoDataFrame <https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.html>`_ or in an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_.
 
-The class structure and parts of the tracking routines are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
+The analysis of the input data and parts of the tracking function are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
 **Important information:**
 
