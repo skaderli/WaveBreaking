@@ -49,5 +49,5 @@ Important information:
 
 .. include:: ../docs/tutorial.rst
 
-.. include:: authors.rst
+.. include:: AUTHORS.rst
 
