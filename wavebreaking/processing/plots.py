@@ -236,13 +236,13 @@ def plot_step(
     if type(step) is str or type(step) is np.datetime64:
         ds = data.sel({kwargs["time_name"]: step}).to_dataset()
         ds["flag"] = flag_data.sel({kwargs["time_name"]: step})
-        date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime("%Y-%m-%d")
+        date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime("%Y-%m-%dT%H")
     else:
         try:
             ds = data.isel({kwargs["time_name"]: step}).to_dataset()
             ds["flag"] = flag_data.isel({kwargs["time_name"]: step})
             date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime(
-                "%Y-%m-%d"
+                "%Y-%m-%dT%H"
             )
         except ValueError:
             print(
