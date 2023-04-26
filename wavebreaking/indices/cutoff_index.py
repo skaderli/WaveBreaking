@@ -163,4 +163,7 @@ def calculate_cutoffs(
             )
         )
 
-    return pd.concat(cutoffs).reset_index(drop=True)
+    if len(cutoffs) == 0:
+        return gpd.GeoDataFrame([])
+    else:
+        return pd.concat(cutoffs).reset_index(drop=True)

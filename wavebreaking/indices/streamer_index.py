@@ -20,6 +20,7 @@ __email__ = "severin.kaderli@unibe.ch"
 import numpy as np
 import xarray as xr
 import pandas as pd
+import geopandas as gpd
 from tqdm import tqdm
 import itertools as itertools
 from shapely.geometry import LineString, Polygon
@@ -270,7 +271,7 @@ def calculate_streamers(
 
         # return the result in a DataFrame
         if df_bp.empty:
-            streamers.append(pd.DataFrame([]))
+            streamers.append(gpd.GeoDataFrame([]))
         else:
             streamer_grids = [
                 pd.DataFrame(bp_to_grid(row).astype("int"), columns=["y", "x"])

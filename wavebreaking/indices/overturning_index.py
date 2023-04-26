@@ -20,6 +20,7 @@ __email__ = "severin.kaderli@unibe.ch"
 import numpy as np
 import xarray as xr
 import pandas as pd
+import geopandas as gpd
 from tqdm import tqdm
 import itertools as itertools
 from sklearn.metrics import DistanceMetric
@@ -184,7 +185,7 @@ def calculate_overturnings(
 
         # return the result in a DataFrame
         if df_ot.empty:
-            overturnings.append(pd.DataFrame([]))
+            overturnings.append(gpd.GeoDataFrame([]))
         else:
             overturning_grids = [
                 pd.DataFrame(ot_to_grid(row), columns=["y", "x"])
