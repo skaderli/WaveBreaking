@@ -6,7 +6,7 @@
    :caption: Contents:
 
    installation
-   tutorial
+   tutorial.rst
    modules
    contributing
    authors
