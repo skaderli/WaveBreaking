@@ -1,4 +1,4 @@
-Introduction
+Welcome to the Documentation of WaveBreaking!
 ------------
 
 .. include:: ../README.rst
