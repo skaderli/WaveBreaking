@@ -1,6 +1,3 @@
-.. image:: figures/readme.gif
-    :alt: readme gif
-
 .. include:: ../README.rst
   :start-after: start_tutorial_part1
   :end-before: end_tutorial_part1
@@ -21,5 +18,3 @@
   
 .. image:: figures/plot_tracks.png
     :alt: plot tracks
-    
-    
