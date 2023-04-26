@@ -41,7 +41,7 @@ The tool is designed to analyze gridded data provided as an `xarray.DataArray <h
 The class structure and parts of the tracking routines are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
 Important information:
------------------
+~~~~~~~~
 
 * The package is still under construction and therefore, major errors could occur. 
 * Free software: MIT license
