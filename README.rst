@@ -45,9 +45,9 @@ Important information:
 * Free software: MIT license
 * Further documentation about the implemented methods can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
 
-.. include:: ../docs/installation.rst
+.. include:: docs/installation.rst
 
-.. include:: ../docs/tutorial.rst
+.. include:: docs/tutorial.rst
 
 .. include:: AUTHORS.rst
 
