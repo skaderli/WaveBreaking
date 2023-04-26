@@ -286,13 +286,12 @@ The result can be visualized by plotting the paths of the tracked events:
                        plot_events=False, # optional
                        labels=True, # optional
                        title="") # optional
- 
+                       
+                  
 .. end_tutorial_part3
  
 .. image:: docs/figures/plot_tracks.png
     :alt: plot tracks
-    
-More information about the functions included in WaveBreaking can be found in the `documentation <https://wavebreaking.readthedocs.io/en/latest/modules.html>`_.
 
 Credits
 -------
