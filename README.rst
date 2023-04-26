@@ -253,10 +253,10 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
                      cmap = None, 
                      title = "")
 
+.. end_tutorial_part2
+
 .. image:: docs/figures/plot_climatology.png
     :alt: plot climatology 
-    
-.. end_tutorial_part2
 
 .. start_tutorial_part3
     
@@ -286,11 +286,11 @@ The result can be visualized by plotting the paths of the tracked events:
                        plot_events = False, #plot events as grey shaded area
                        labels = True,
                        title = "")
-                       
+ 
+.. end_tutorial_part3
+ 
 .. image:: docs/figures/plot_tracks.png
     :alt: plot tracks
-
-.. end_tutorial_part3
 
 Credits
 -------
