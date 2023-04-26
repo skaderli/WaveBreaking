@@ -20,6 +20,8 @@ WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 .. image:: docs/figures/README.gif
     :alt: wavebreaking gif
     
+.. start_intro
+    
 WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of the breaking events such as area and intensity are calculated. The tracking routine provides information about the temporal evolution of the wave breaking events. Finally, the implemented plotting methods allow for a first visualization. 
 
 The detection of RWB is based on applying a wave breaking index to the dynamical tropopause. The WaveBreaking package provides to different RWB indices:
@@ -45,10 +47,14 @@ Important information:
 * Free software: MIT license
 * Further documentation about the implemented methods can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
 
+.. end_intro
+
+.. start_installation
+
 Installation
 --------
 
-Stable release
+Stable release
 ~~~~~~~~
 To install WaveBreaking, run this command in your terminal:
  
@@ -96,6 +102,9 @@ To check if the installation was successful, some tests can be performed:
  
         python -m unittest tests.test_wavebreaking
         
+.. end_installation
+
+.. start_tutorial
 
 Tutorial
 --------
@@ -274,6 +283,9 @@ The result can be visualized by plotting the paths of the tracked events:
 .. image:: docs/figures/plot_tracks.png
     :alt: plot tracks
 
+.. end_tutorial
+
+.. start_credits
 
 Credits
 -------
@@ -284,3 +296,5 @@ Credits
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+.. end_credits
