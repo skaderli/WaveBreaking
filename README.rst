@@ -135,27 +135,29 @@ The wavebreaking module can calculate the intensity for each identified event. F
 Contour calculation:
 ~~~~~~~~~~
        
-Both Rossby wave breaking indices are based on a contour line representing the dynamical tropopause. The "get_contours()" function calculates the dynamical tropopause on a specific level (commonly the 2 PVU level for Potential Vorticity). If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. With "original_coordinates = False", array indices are returned (used for the index calculations), instead of original coordinates. This routines returns a geopandas.GeoDataFrame with a geometry column and some properties for each contour. 
+Both Rossby wave breaking indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for the contour calculation on both Hemispheres at the same time (levels -2 and 2). 
+
+If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. With "original_coordinates = False", array indices are returned (used for the index calculations), instead of original coordinates. This routines returns a geopandas.GeoDataFrame with a geometry column and some properties for each contour. 
 
 .. code-block:: python
 
         #calculate contours
-        contours = wb.get_contours(data = smoothed, 
-                                   contour_level = 2, 
-                                   periodic_add = 120, 
-                                   original_coordinates = True)
+        contours = wb.calculate_contours(data = smoothed, 
+                                         contour_levels = [-2, 2], 
+                                         periodic_add = 120, 
+                                         original_coordinates = True)
         
 
 Index calculation:
 ~~~~~~~~~~
 
-All three RWB indices perform the contour calculation before identifying the RWB events. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. All index functions create a geopandas.GeoDataFrame with a geometry column and some properties for each event. 
+All three RWB indices perform the contour calculation before identifying the RWB events. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. If the intensity is provided (momentum flux, see data pre-processing), it is calculated for each event. All index functions create a geopandas.GeoDataFrame with a geometry column and some properties for each event. 
 
 .. code-block:: python
 
         #calculate streamers
         streamers = wb.calculate_streamers(data = smoothed, 
-                                           contour_level = 2, 
+                                           contour_levels = [-2, 2], 
                                            geo_dis = 800,
                                            cont_dis = 1200,
                                            intensity = mflux,
@@ -165,7 +167,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
 
         #calculate overturnings
         overturnings = wb.calculate_overturnings(data = smoothed, 
-                                                 contour_level = 2, 
+                                                 contour_levels = [-2, 2], 
                                                  range_group = 500, 
                                                  min_exp = 5, 
                                                  intensity = mflux,
@@ -175,7 +177,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
  
         #calculate cutoffs
         cutoffs = wb.calculate_cutoffs(data = smoothed, 
-                                       contour_level = 2,
+                                       contour_levels = [-2, 2], 
                                        min_exp = 5,
                                        intensity = mflux, 
                                        periodic_add = 120)
