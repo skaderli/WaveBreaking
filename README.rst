@@ -17,10 +17,10 @@
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 ============
 
-.. start_intro
-
-.. image:: ../main/docs/figures/readme.gif
+.. image:: docs/figures/readme.gif
     :alt: readme gif
+
+.. start_intro
         
 WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example the 2 Potential Vorticity Units (PVU) contour line in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of RWB events such as area and intensity are calculated. The event tracking provides information about the temporal evolution of the RWB events. Finally, the implemented plotting methods allow for a first visualization. 
 
@@ -103,7 +103,7 @@ To check if the installation was successful, some tests can be performed:
         
 .. end_installation
 
-.. start_tutorial
+.. start_tutorial_part1
 
 Tutorial
 --------
@@ -231,8 +231,12 @@ To analyze a specific large scale situation, the wave breaking events on a singl
                      color_events = "gold", 
                      title = "")
 
+.. end_tutorial_part1
+
 .. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_step.png
     :alt: plot step 
+    
+.. start_tutorial_part2  
     
 The analyze Rossby wave breaking from a climatological perspective, the occurrence (for specific seasons) can be plotted:
 
@@ -249,8 +253,12 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
                      cmap = None, 
                      title = "")
 
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_climatology.png
+.. image:: docs/figures/plot_climatology.png
     :alt: plot climatology 
+    
+.. end_tutorial_part2
+
+.. start_tutorial_part3
     
 Event tracking:
 ~~~~~~~~~~~
@@ -279,10 +287,10 @@ The result can be visualized by plotting the paths of the tracked events:
                        labels = True,
                        title = "")
                        
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_tracks.png
+.. image:: docs/figures/plot_tracks.png
     :alt: plot tracks
 
-.. end_tutorial
+.. end_tutorial_part3
 
 Credits
 -------
