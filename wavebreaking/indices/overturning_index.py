@@ -77,14 +77,14 @@ def calculate_overturnings(
     Returns
     -------
         overturnings: geopandas.GeoDataFrame
-            GeoDataFrame containing different characteristics of the overturning events
-                "date": date of the overturning
-                "com": center of mass in the format (x,y)
-                "mean_var": mean of the variable used for the overturning calculations
-                "area": area of a overturning event
-                "intensity": sum of the intensity (momentum flux)
-                over all overturning grid cells weighted with the corresponding area
-                "geometry": MultiPoint object with overturning coordinates in the format (x,y)
+            GeoDataFrame containing different characteristics of the overturning events:
+                "date": date of the overturning;
+                "com": center of mass in the format (x,y);
+                "mean_var": mean of the variable used for the overturning calculations;
+                "area": area of a overturning event;
+                "intensity": sum of the intensity (momentum flux);
+                over all overturning grid cells weighted with the corresponding area;
+                "geometry": MultiPoint object with overturning coordinates in the format (x,y).
     """
 
     # filter contours

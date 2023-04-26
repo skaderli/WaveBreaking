@@ -65,11 +65,11 @@ def calculate_contours(
     Returns
     -------
         contours: geopandas.GeoDataFrame
-            GeoDataFrame containing different characteristics of the contours
-                "date": date of the contour line
-                "exp_lon": expansion of the contours in the longitudinal direction
-                "mean_lat": mean latitude of the contours
-                "geometry": MultiPoint object with the contour coordinates in the format (x,y)
+            GeoDataFrame containing different characteristics of the contours:
+                "date": date of the contour line;
+                "exp_lon": expansion of the contours in the longitudinal direction;
+                "mean_lat": mean latitude of the contours;
+                "geometry": MultiPoint object with the contour coordinates in the format (x,y).
     """
 
     # select variable and time step for the contour calculation

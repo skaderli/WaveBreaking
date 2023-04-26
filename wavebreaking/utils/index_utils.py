@@ -33,7 +33,7 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 def properties_per_timestep(date, level, lodf, data, intensity, periodic_add, *args, **kwargs):
     """
-    This is an internal function to calculate several properties of the identified events.
+    Calculate several properties of the identified events.
     """
 
     # select time step
@@ -77,6 +77,7 @@ def properties_per_timestep(date, level, lodf, data, intensity, periodic_add, *a
             2,
         )
 
+        # transform coordinates to original coordinates
         x_original = data[kwargs["lon_name"]].values[
             df.x.values.astype("int") % kwargs["nlon"]
         ]
@@ -105,7 +106,7 @@ def properties_per_timestep(date, level, lodf, data, intensity, periodic_add, *a
 
         return [geo_mp, prop_dict]
 
-    # store properties in a DataFrame
+    # store properties in a GeoDataFrame
     properties = [properties_per_event(item) for item in lodf]
 
     return gpd.GeoDataFrame(
