@@ -17,7 +17,7 @@
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 ============
 
-.. image:: docs/figures/README.gif
+.. image:: docs/figures/readme.gif
     :alt: wavebreaking gif
     
 .. start_intro
