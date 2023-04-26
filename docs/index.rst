@@ -1,4 +1,4 @@
-.. include:: ..readme.rst
+.. include:: introduction.rst
 
 
 .. toctree::
