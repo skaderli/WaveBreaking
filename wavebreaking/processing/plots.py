@@ -39,7 +39,7 @@ from wavebreaking.processing import spatial
 def plot_clim(
     flag_data,
     seasons=None,
-    proj=None,
+    proj=ccrs.PlateCarree(),
     size=(12, 8),
     smooth_passes=5,
     periodic=True,
@@ -84,10 +84,8 @@ def plot_clim(
             Climatological plot of the occurrence frequencies.
     """
 
-    # define cartopy projections
+    # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -179,7 +177,7 @@ def plot_step(
     data,
     step,
     contour_levels,
-    proj=None,
+    proj=ccrs.PlateCarree(),
     size=(12, 8),
     periodic=True,
     labels=True,
@@ -228,10 +226,8 @@ def plot_step(
             Plot of one time step.
     """
 
-    # define cartopy projections
+    # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -356,7 +352,7 @@ def plot_step(
 def plot_tracks(
     data,
     events,
-    proj=None,
+    proj=ccrs.PlateCarree(),
     size=(12, 8),
     min_path=0,
     plot_events=False,
@@ -395,10 +391,8 @@ def plot_tracks(
             Plot of the tracks
     """
 
-    # define cartopy projections
+    # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
