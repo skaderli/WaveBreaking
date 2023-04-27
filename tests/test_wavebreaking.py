@@ -123,7 +123,7 @@ class test_index_utils(unittest.TestCase):
         def to_be_decorated(data, contour_levels, *args, **kwargs):
             return pd.DataFrame([kwargs["step"].values], columns=["time"])
 
-        df_check = data.drop("lev").time.to_dataframe().reset_index(drop=True)
+        df_check = data.drop_vars("lev").time.to_dataframe().reset_index(drop=True)
         self.assertEqual(True, to_be_decorated(data.PV, 2).equals(df_check))
 
 
