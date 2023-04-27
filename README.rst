@@ -280,7 +280,7 @@ The result can be visualized by plotting the paths of the tracked events:
         
         wb.plot_tracks(data=smoothed,
                        events=f_events,  
-                       proj=ccrs.NorthPolarStereo(), # optional
+                       proj=ccrs.PlateCarree(), # optional
                        size=(12,8), # optional
                        min_path=0, # optional
                        plot_events=False, # optional
