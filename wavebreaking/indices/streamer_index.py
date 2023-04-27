@@ -57,6 +57,8 @@ def calculate_streamers(
     developed by Wernli and Sprenger (2007).
     The default parameters for the streamer identification
     are based on the study by Wernli and Sprenger (2007).
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

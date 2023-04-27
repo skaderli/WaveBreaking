@@ -29,6 +29,8 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
     """
     Calculate the momentum flux derived from the product of the deviations
     of both wind components from the zonal mean.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------
@@ -61,6 +63,8 @@ def calculate_smoothed_field(data, passes, *args, **kwargs):
     Calculate smoothed field based on a 5-point smoothing
     with double-weighted centre and multiple smoothing passes.
     The smoothing routine is based on the wrf.smooth2d function.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

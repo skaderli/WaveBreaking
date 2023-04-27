@@ -57,6 +57,8 @@ def calculate_overturnings(
     are based on the study by Barnes and Hartmann (2012).
     The overturning region is represented by a rectangle
     enclosing all overturning contour points.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

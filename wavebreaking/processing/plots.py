@@ -52,6 +52,8 @@ def plot_clim(
 ):
     """
     Creates a simple climatological plot showing the occurrence frequency of the detected events.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------
@@ -190,6 +192,8 @@ def plot_step(
 ):
     """
     Creates a plot showing the events at one time step.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------
@@ -363,6 +367,8 @@ def plot_tracks(
 ):
     """
     Creates a plot showing the tracks of the temporally coherent events.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

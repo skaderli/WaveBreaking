@@ -47,6 +47,8 @@ def calculate_contours(
     The calculations are based on the measure.find_contours module.
     If periodic_add is provided, the data array is expanded in the longitudinal direction
     and undulations at the date border are correctly captured.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

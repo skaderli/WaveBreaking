@@ -36,8 +36,10 @@ from wavebreaking.utils import index_utils
 @get_dimension_attributes("data")
 def to_xarray(data, events, name="flag", *args, **kwargs):
     """
-    Create xarray.DataArray from events stored in a geopandas.GeoDataFrame
-    Grid cells where an event is present are flagged with the value 1
+    Create xarray.DataArray from events stored in a geopandas.GeoDataFrame.
+    Grid cells where an event is present are flagged with the value 1.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------

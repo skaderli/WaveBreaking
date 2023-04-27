@@ -42,6 +42,8 @@ def calculate_cutoffs(
 ):
     """
     Identify cutoff structures.
+    Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
+    and resolution ("dlon", "dlat") can be passed as key=value argument.
 
     Parameters
     ----------
