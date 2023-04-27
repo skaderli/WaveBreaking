@@ -13,7 +13,7 @@ Top-level package for WaveBreaking.
 __author__ = "Severin Kaderli"
 __license__ = "MIT"
 __email__ = "severin.kaderli@unibe.ch"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # import spatial pre-processing functions
 from wavebreaking.processing.spatial import calculate_momentum_flux, calculate_smoothed_field
