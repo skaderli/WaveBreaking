@@ -17,10 +17,10 @@ __email__ = "severin.kaderli@unibe.ch"
 
 # import modules
 import numpy as np
-import xarray as xr
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import MultiPoint
+from shapely.geometry import Polygon, box, MultiPolygon
+import shapely.vectorized
 from tqdm import tqdm
 import functools
 
@@ -31,87 +31,111 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 
-def properties_per_timestep(date, level, lodf, data, intensity, periodic_add, *args, **kwargs):
-    """
-    Calculate several properties of the identified events.
-    """
+def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs):
+    def polygon_to_grid_points(poly):
+        """
+        Extract all grid cells that are enclosed by the path of a polygon
+        """
+        # get grid points
+        x, y = np.meshgrid(
+            np.arange(0, kwargs["nlon"] + periodic_add),
+            np.arange(0, kwargs["nlat"]),
+        )
+        x, y = x.flatten(), y.flatten()
 
-    # select time step
-    ds = data.sel({kwargs["time_name"]: date})
-    ds = ds.to_dataset(name="vars")
+        # get interior points and border
+        mask_contain = shapely.vectorized.contains(poly, x, y)
+        mask_touch = shapely.vectorized.touches(poly, x, y)
 
-    # create variable "weight" representing the weighted area of each grid cell
-    # this follows the weights definition used in
-    # the ConTrack - Contour Tracking tool developed by Daniel Steinfeld
+        # get DataFrames
+        interior = pd.DataFrame(np.c_[x, y][mask_contain], columns=["x", "y"]).astype(
+            "int"
+        )
+        exterior = pd.DataFrame(np.c_[x, y][mask_touch], columns=["x", "y"]).astype(
+            "int"
+        )
+
+        return pd.concat([exterior, interior]).drop_duplicates()
+
+    # get grid points
+    points = polygon_to_grid_points(series.geometry)
+
+    # select date
+    da = data.sel({kwargs["time_name"]: series.date}).values
+
+    # Calculate cell weight following the defintion by Daniel Steinfeld
     weight_lat = np.cos(data[kwargs["lat_name"]].values * np.pi / 180)
-    ds["weight"] = xr.DataArray(
+    weight = (
         np.ones((kwargs["nlat"], kwargs["nlon"]))
-        * np.array((111 * 1 * 111 * 1 * weight_lat)).astype(np.float32)[:, None],
-        dims=[kwargs["lat_name"], kwargs["lon_name"]],
+        * np.array((111 * 111 * weight_lat))[:, None]
     )
 
-    # add intensity if available
+    # calculate properties
+    areas = weight[points.y, points.x % kwargs["nlon"]]
+    area = np.sum(areas)
+    mean_var = np.dot(da[points.y, points.x % kwargs["nlon"]], areas) / area
+    com = np.sum(points.multiply(areas, axis=0), axis=0) / area
+
+    # transform coordinates
+    lons = data[kwargs["lon_name"]].values
+    lats = data[kwargs["lat_name"]].values
+
+    com = [(lons[int(com.x) % kwargs["nlon"]], lats[int(com.y)])]
+
+    def transform_polygon(poly):
+        """
+        transfrom coordinates of a Polygon
+        """
+        coords = np.asarray(poly.exterior.coords.xy).T.astype("int")
+        coords_original = np.c_[lons[coords[:, 0] % kwargs["nlon"]], lats[coords[:, 1]]]
+        return Polygon(coords_original)
+
+    # check for Polygons that cross date border and split
+    exterior = pd.DataFrame(
+        np.asarray(series.geometry.exterior.coords.xy).T, columns=["x", "y"]
+    ).astype("int")
+    if any(exterior.x >= kwargs["nlon"]) & any(exterior.x < kwargs["nlon"]):
+        # check overlap with original grid
+        original_grid = box(0, 0, kwargs["nlon"] - 0.01, kwargs["nlat"])
+        p1 = series.geometry.intersection(original_grid)
+
+        # check overlap with added grid due to periodicity
+        add_grid = box(
+            kwargs["nlon"], 0, kwargs["nlon"] - 0.01 + periodic_add, kwargs["nlat"]
+        )
+        p2 = series.geometry.intersection(add_grid)
+
+        if type(p1) != Polygon:
+            poly = transform_polygon(p2)
+        if type(p2) != Polygon:
+            poly = transform_polygon(p1)
+        else:
+            p1_or = transform_polygon(p1)
+            p2_or = transform_polygon(p2)
+
+            poly = MultiPolygon([p1_or, p2_or])
+    else:
+        poly = Polygon(np.c_[lons[exterior.x % kwargs["nlon"]], lats[exterior.y]])
+
+    # store properties in dict
+    prop_dict = {
+        "date": series.date,
+        "level": series.level,
+        "com": com,
+        "mean_var": np.round(mean_var, 2),
+        "area": np.round(area, 2),
+    }
+
+    # calculate intensity if provided
     if intensity is not None:
-        ds["intensity"] = intensity.sel({kwargs["time_name"]: date})
+        intens = intensity.sel({kwargs["time_name"]: series.date}).values
+        intens = np.dot(intens[points.y, points.x % kwargs["nlon"]], areas) / area
+        prop_dict["intensity"] = np.round(intens, 2)
 
-    # expand for periodicity
-    ds = xr.concat(
-        [ds, ds.isel({kwargs["lon_name"]: slice(0, periodic_add)})],
-        dim=kwargs["lon_name"],
-    )
-
-    def properties_per_event(df):
-        """
-        Calculate properties for each event.
-        """
-
-        # select grid cells of a specific event and calculate several properties
-        temp = ds.isel(
-            {kwargs["lat_name"]: df.y.to_xarray(), kwargs["lon_name"]: df.x.to_xarray()}
-        )
-        area = np.round(np.sum(temp.weight.values), 2)
-        mean_var = np.round(np.average(temp.vars.values), 2)
-        com = np.round(
-            np.sum(df.multiply((temp.weight * temp.vars).values, axis=0), axis=0)
-            / sum((temp.weight * temp.vars).values),
-            2,
-        )
-
-        # transform coordinates to original coordinates
-        x_original = data[kwargs["lon_name"]].values[
-            df.x.values.astype("int") % kwargs["nlon"]
-        ]
-        y_original = data[kwargs["lat_name"]].values[
-            df.y.values.astype("int") % kwargs["nlat"]
-        ]
-        geo_mp = MultiPoint(np.c_[x_original, y_original])
-
-        com_x = data[kwargs["lon_name"]].values[
-            (np.round(com.x, 2) % kwargs["nlon"]).astype("int")
-        ]
-        com_y = data[kwargs["lat_name"]].values[np.round(com.y, 2).astype("int")]
-
-        prop_dict = {
-            "date": date,
-            "level": level,
-            "com": (com_x, com_y),
-            "mean_var": mean_var,
-            "area": area,
-        }
-
-        if "intensity" in ds.variables:
-            prop_dict["intensity"] = np.round(
-                np.sum((temp.weight * temp.intensity).values) / area, 2
-            )
-
-        return [geo_mp, prop_dict]
-
-    # store properties in a GeoDataFrame
-    properties = [properties_per_event(item) for item in lodf]
-
+    # return GeoDataFrame
     return gpd.GeoDataFrame(
-        pd.DataFrame([item[1] for item in properties]),
-        geometry=[item[0] for item in properties],
+        pd.DataFrame(prop_dict),
+        geometry=[poly],
     )
 
 
@@ -155,7 +179,9 @@ def iterate_time_dimension(func):
         steps = data[kwargs["time_name"]]
         repeat_func = []
 
-        for step in tqdm(steps, leave=True, position=0):
+        for step in tqdm(
+            steps, desc="Calculating contours    ", leave=True, position=0
+        ):
             kwargs["step"] = step
             repeat_func.append(func(data, contour_levels, *args, **kwargs))
 
@@ -185,20 +211,3 @@ def iterate_contour_levels(func):
         return pd.concat(repeat_func).reset_index(drop=True)
 
     return wrapper
-
-
-def add_logger(message):
-    """
-    decorator to add a logger message
-    """
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            logger.info(message)
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
