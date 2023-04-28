@@ -24,16 +24,11 @@ import geopandas as gpd
 from tqdm import tqdm
 import itertools as itertools
 from shapely.geometry import LineString, Polygon
-import shapely.vectorized
 from sklearn.metrics import DistanceMetric
 
 dist = DistanceMetric.get_metric("haversine")
 
-from wavebreaking.utils.index_utils import (
-    properties_per_timestep,
-    combine_shared,
-    add_logger,
-)
+from wavebreaking.utils.index_utils import properties_per_event, combine_shared
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
@@ -41,7 +36,6 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 @decorator_contour_calculation
-@add_logger("Calculating streamers...")
 def calculate_streamers(
     data,
     contour_level,
@@ -90,7 +84,7 @@ def calculate_streamers(
                 "geometry": MultiPoint object with the streamer coordinates in the format (x,y).
     """
 
-    # filter contours
+    # filter contours from contour interation
     contours = kwargs["contours"]
     contours = contours[contours.exp_lon == contours.exp_lon.max()].reset_index(
         drop=True
@@ -98,15 +92,18 @@ def calculate_streamers(
 
     # loop over contours
     streamers = []
-    for index, row in tqdm(
-        contours.iterrows(), total=contours.shape[0], leave=True, position=0
+    for index, series in tqdm(
+        contours.iterrows(),
+        total=contours.shape[0],
+        desc="Calculating streamers   ",
+        leave=True,
+        position=0,
     ):
         # calculate all possible basepoints combinations
         # (1) get coordinates of the contour points
         contour_index = pd.DataFrame(
-            [{"y": p.y, "x": p.x} for p in row.geometry.geoms]
+            np.asarray(series.geometry.coords.xy).T, columns=["x", "y"]
         ).astype("int")
-        contour_line = LineString(row.geometry.geoms)
         contour_coords = np.c_[
             data[kwargs["lat_name"]].values[contour_index.y],
             data[kwargs["lon_name"]].values[contour_index.x % kwargs["nlon"]],
@@ -126,16 +123,16 @@ def calculate_streamers(
 
         # (5) store the coordinates of the point combinations in a DataFrame
         df1 = (
-            contour_index[["y", "x"]]
+            contour_index[["x", "y"]]
             .iloc[check[:, 0]]
             .reset_index()
-            .rename(columns={"y": "y1", "x": "x1", "index": "ind1"})
+            .rename(columns={"x": "x1", "y": "y1", "index": "ind1"})
         )
         df2 = (
-            contour_index[["y", "x"]]
+            contour_index[["x", "y"]]
             .iloc[check[:, 1]]
             .reset_index()
-            .rename(columns={"y": "y2", "x": "x2", "index": "ind2"})
+            .rename(columns={"x": "x2", "y": "y2", "index": "ind2"})
         )
         df_bp = pd.concat([df1, df2], axis=1)
 
@@ -151,7 +148,7 @@ def calculate_streamers(
 
             # drop duplicates after mapping the coordinates to the original grid
             temp = pd.concat(
-                [df.y1, df.x1 % kwargs["nlon"], df.y2, df.x2 % kwargs["nlon"]], axis=1
+                [df.x1 % kwargs["nlon"], df.y1, df.x2 % kwargs["nlon"], df.y2], axis=1
             )
             temp = temp[temp.duplicated(keep=False)]
 
@@ -180,7 +177,7 @@ def calculate_streamers(
                 for index, row in df.iterrows()
             ]
             check_intersections = [
-                row.dline.touches(contour_line) for index, row in df.iterrows()
+                row.dline.touches(series.geometry) for index, row in df.iterrows()
             ]
 
             return df[check_intersections]
@@ -226,7 +223,7 @@ def calculate_streamers(
                 item[
                     np.argmax(
                         [
-                            on[int(row.ind1): int(row.ind2) + 1].sum()
+                            on[int(row.ind1) : int(row.ind2) + 1].sum()
                             for index, row in df.iloc[item].iterrows()
                         ]
                     )
@@ -249,47 +246,29 @@ def calculate_streamers(
             df_bp = routines[i](df_bp).reset_index(drop=True)
             i += 1
 
-        def bp_to_grid(df):
-            """
-            Extract all grid cells that are enclosed by the path of a streamer
-            """
+        # define Polygons
+        dates = pd.DataFrame({"date": [series.date for i in range(0, len(df_bp))]})
+        levels = pd.DataFrame({"level": [series.level for i in range(0, len(df_bp))]})
+        polys = [
+            Polygon(np.array(contour_index[int(row.ind1) : int(row.ind2) + 1]))
+            for index, row in df_bp.iterrows()
+        ]
+        streamers.append(
+            gpd.GeoDataFrame(pd.concat([dates, levels], axis=1), geometry=polys)
+        )
 
-            # map the streamer on the index grid
-            x, y = np.meshgrid(
-                np.arange(0, kwargs["nlon"] + periodic_add),
-                np.arange(0, kwargs["nlat"]),
-            )
-            x, y = x.flatten(), y.flatten()
+    # define GeoDataFrame
+    gdf = pd.concat(streamers).reset_index(drop=True)
 
-            # get mask of streamer
-            mask = shapely.vectorized.contains(
-                Polygon(np.array(contour_index[int(df.ind1): int(df.ind2) + 1])), y, x
-            )
-
-            # return index coordinates of the streamer
-            return np.r_[
-                contour_index[int(df.ind1): int(df.ind2) + 1].values, np.c_[y, x][mask]
-            ]
-
-        # return the result in a DataFrame
-        if df_bp.empty:
-            streamers.append(gpd.GeoDataFrame([]))
-        else:
-            streamer_grids = [
-                pd.DataFrame(bp_to_grid(row).astype("int"), columns=["y", "x"])
-                for index, row in df_bp.iterrows()
-            ]
-            streamers.append(
-                properties_per_timestep(
-                    row.date,
-                    row.level,
-                    streamer_grids,
-                    data,
-                    intensity,
-                    periodic_add,
-                    *args,
-                    **kwargs
-                )
-            )
-
+    # calculate properties and transform coordinates
+    streamers = [
+        properties_per_event(data, row, intensity, periodic_add, *args, **kwargs)
+        for (index, row) in tqdm(
+            gdf.iterrows(),
+            desc="Calculating properties  ",
+            total=len(gdf),
+            leave=True,
+            position=0,
+        )
+    ]
     return pd.concat(streamers).reset_index(drop=True)

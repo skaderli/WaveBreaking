@@ -21,17 +21,14 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import geopandas as gpd
+from shapely.geometry import box
 from tqdm import tqdm
 import itertools as itertools
 from sklearn.metrics import DistanceMetric
 
 dist = DistanceMetric.get_metric("haversine")
 
-from wavebreaking.utils.index_utils import (
-    properties_per_timestep,
-    combine_shared,
-    add_logger,
-)
+from wavebreaking.utils.index_utils import properties_per_event
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
@@ -39,7 +36,6 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
 @decorator_contour_calculation
-@add_logger("Calculating overturnings...")
 def calculate_overturnings(
     data,
     contour_levels,
@@ -90,7 +86,7 @@ def calculate_overturnings(
                 "geometry": MultiPoint object with overturning coordinates in the format (x,y).
     """
 
-    # filter contours
+    # filter contours from contour interation
     contours = kwargs["contours"]
     contours = contours[contours.exp_lon == contours.exp_lon.max()].reset_index(
         drop=True
@@ -98,12 +94,18 @@ def calculate_overturnings(
 
     # loop over contours
     overturnings = []
-    for index, row in tqdm(
-        contours.iterrows(), total=contours.shape[0], leave=True, position=0
+    for index, series in tqdm(
+        contours.iterrows(),
+        total=contours.shape[0],
+        desc="Calculating overturnings",
+        leave=True,
+        position=0,
     ):
         # calculate all overturning longitudes
         # (1) select the contour points and count the longitudes
-        contour_index = pd.DataFrame([{"y": p.y, "x": p.x} for p in row.geometry.geoms])
+        contour_index = pd.DataFrame(
+            np.asarray(series.geometry.coords.xy).T, columns=["x", "y"]
+        ).astype("int")
         lons, counts = np.unique(contour_index.x, return_counts=True)
 
         # (2) only keep longitudes that appear at least 3 times
@@ -171,39 +173,29 @@ def calculate_overturnings(
             df_ot = routines[i](df_ot).reset_index(drop=True)
             i += 1
 
-        def ot_to_grid(df):
-            """
-            Get all grid cells that are enclosed by the rectangle describing an overturning event
-            """
+        # define Polygons
+        dates = pd.DataFrame({"date": [series.date for i in range(0, len(df_ot))]})
+        levels = pd.DataFrame({"level": [series.level for i in range(0, len(df_ot))]})
+        polys = [
+            box(row.min_lon, row.min_lat, row.max_lon, row.max_lat)
+            for index, row in df_ot.iterrows()
+        ]
+        overturnings.append(
+            gpd.GeoDataFrame(pd.concat([dates, levels], axis=1), geometry=polys)
+        )
 
-            # map the overturning events on the original grid,
-            # represented by a rectangle around the event
-            x, y = np.meshgrid(
-                range(df.min_lon, df.max_lon + 1),
-                range(df.min_lat, df.max_lat + 1),
-            )
-            x, y = x.flatten(), y.flatten()
-            return np.vstack((y, x)).T
+    # define GeoDataFrame
+    gdf = pd.concat(overturnings).reset_index(drop=True)
 
-        # return the result in a DataFrame
-        if df_ot.empty:
-            overturnings.append(gpd.GeoDataFrame([]))
-        else:
-            overturning_grids = [
-                pd.DataFrame(ot_to_grid(row), columns=["y", "x"])
-                for index, row in df_ot.iterrows()
-            ]
-            overturnings.append(
-                properties_per_timestep(
-                    row.date,
-                    row.level,
-                    overturning_grids,
-                    data,
-                    intensity,
-                    periodic_add,
-                    *args,
-                    **kwargs
-                )
-            )
-
+    # calculate properties and transform coordinates
+    overturnings = [
+        properties_per_event(data, row, intensity, periodic_add, *args, **kwargs)
+        for (index, row) in tqdm(
+            gdf.iterrows(),
+            desc="Calculating properties  ",
+            total=len(gdf),
+            leave=True,
+            position=0,
+        )
+    ]
     return pd.concat(overturnings).reset_index(drop=True)

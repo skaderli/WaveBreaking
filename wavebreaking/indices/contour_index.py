@@ -22,7 +22,7 @@ import xarray as xr
 import pandas as pd
 import geopandas as gpd
 import itertools as itertools
-from shapely.geometry import MultiPoint
+from shapely.geometry import LineString
 from skimage import measure
 import functools
 
@@ -30,13 +30,11 @@ from wavebreaking.utils.data_utils import get_dimension_attributes, check_argume
 from wavebreaking.utils.index_utils import (
     iterate_time_dimension,
     iterate_contour_levels,
-    add_logger,
 )
 
 
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
-@add_logger("Calculating contours...")
 @iterate_time_dimension
 @iterate_contour_levels
 def calculate_contours(
@@ -87,26 +85,65 @@ def calculate_contours(
     # get contours (indices in array coordinates)
     contours_from_measure = measure.find_contours(ds.values, kwargs["level"])
 
-    # contours in indices for wave breaking calculation
+    # get indices and check closed and length
+    contours_index_expanded = []
+    closed = []
+    for item in contours_from_measure:
+        check_closed = all(item[0] == item[-1])
+        indices = np.asarray(
+            list(dict.fromkeys(map(tuple, np.round(item).astype("int"))))
+        )[:, ::-1]
+        check_len = len(indices) >= 4
+
+        if check_len is True:
+            contours_index_expanded.append(indices)
+            closed.append(check_closed)
+
+    def check_duplicates(list_of_arrays):
+        """
+        Check if there are cutoff duplicates due to the periodic expansion
+        """
+        temp = [
+            np.c_[item[:, 0] % kwargs["nlon"], item[:, 1]] for item in list_of_arrays
+        ]
+
+        check = [
+            (i1, i2)
+            for (i1, e1), (i2, e2) in itertools.permutations(enumerate(temp), r=2)
+            if set(map(tuple, e1)).issubset(set(map(tuple, e2)))
+        ]
+        drop = []
+        lens = np.array([len(item) for item in temp])
+        for item in check:
+            if lens[item[0]] == lens[item[1]]:
+                drop.append(max(item))
+            else:
+                drop.append(item[np.argmin(lens[[item[0], item[1]]])])
+
+        return list(set(drop))
+
+    # check for duplicates
+    drop = check_duplicates(contours_index_expanded)
     contours_index_expanded = [
-        np.asarray(list(dict.fromkeys(map(tuple, np.round(item).astype("int")))))
-        for item in contours_from_measure
+        item for index, item in enumerate(contours_index_expanded) if index not in drop
     ]
+    closed = [item for index, item in enumerate(closed) if index not in drop]
 
     def contour_to_dataframe(list_of_arrays):
         """
         Calculate different characteristics of the contour line.
         """
 
-        exp_lon = [len(set(item[:, 1])) for item in list_of_arrays]
-        mean_lat = [np.round(item[:, 0].mean(), 2) for item in list_of_arrays]
-        geo_mp = [MultiPoint(coords[:, ::-1]) for coords in list_of_arrays]
+        exp_lon = [len(set(item[:, 0])) for item in list_of_arrays]
+        mean_lat = [np.round(item[:, 1].mean(), 2) for item in list_of_arrays]
+        geo_mp = [LineString(coords) for coords in list_of_arrays]
 
         gdf = gpd.GeoDataFrame(
             pd.DataFrame(
                 {
                     "date": date,
                     "level": kwargs["level"],
+                    "closed": closed,
                     "exp_lon": exp_lon,
                     "mean_lat": mean_lat,
                 }
@@ -121,23 +158,21 @@ def calculate_contours(
         return contour_to_dataframe(contours_index_expanded)
 
     else:
+        # get original coordinates
+        contours_index_original = [
+            np.c_[item[:, 0] % kwargs["nlon"], item[:, 1] % kwargs["nlat"]]
+            for item in contours_index_expanded
+        ]
 
-        def map_indices_to_original_grid(list_of_arrays):
+        contours_index_original = [
+            list(dict.fromkeys(map(tuple, item))) for item in contours_index_original
+        ]
+
+        def check_duplicates(list_of_arrays):
             """
-            Map contour indices to original input grid.
+            Identify duplicates that have been identified due to the periodicity
             """
 
-            # get original coordinates
-            contours_index_original = [
-                np.c_[item[:, 0] % kwargs["nlat"], item[:, 1] % kwargs["nlon"]]
-                for item in list_of_arrays
-            ]
-            contours_index_original = [
-                list(dict.fromkeys(map(tuple, item)))
-                for item in contours_index_original
-            ]
-
-            # drop duplicates that have been identified due to the periodicity
             index = np.arange(0, len(contours_index_original))
             index_combination = list(itertools.combinations(index, r=2))
 
@@ -156,23 +191,31 @@ def calculate_contours(
                 ):
                     drop.append(combination[1])
 
-            contours_index_original = [
-                np.asarray(contours_index_original[i]) for i in index if i not in drop
-            ]
+            return drop
 
-            # select the original coordinates from the indices
-            return [
-                np.c_[
-                    data[kwargs["lat_name"]].values[item[:, 0].astype("int")],
-                    data[kwargs["lon_name"]].values[item[:, 1].astype("int")],
-                ]
-                for item in contours_index_original
+        # get indices of duplicates
+        drop = check_duplicates(contours_index_original)
+
+        # drop duplicate indices
+        contours_index_original = [
+            np.asarray(item)
+            for index, item in enumerate(contours_index_original)
+            if index not in drop
+        ]
+
+        closed = [item for index, item in enumerate(closed) if index not in drop]
+
+        # select the original coordinates from the indices
+        contours_coordinates_original = [
+            np.c_[
+                data[kwargs["lon_name"]].values[item[:, 0].astype("int")],
+                data[kwargs["lat_name"]].values[item[:, 1].astype("int")],
             ]
+            for item in contours_index_original
+        ]
 
         # return contours in original cooridnates as a geopandas.GeoDataFrame
-        return contour_to_dataframe(
-            map_indices_to_original_grid(contours_index_expanded)
-        )
+        return contour_to_dataframe(contours_coordinates_original)
 
 
 def decorator_contour_calculation(func):
@@ -181,19 +224,12 @@ def decorator_contour_calculation(func):
     """
 
     @functools.wraps(func)
-    def wrapper(
-        data,
-        contour_levels,
-        periodic_add=120,
-        original_coordinates=False,
-        *args,
-        **kwargs
-    ):
-        # pass contours to the wrapped function as a key word argument
+    def wrapper(data, contour_levels, periodic_add=120, *args, **kwargs):
+        # pass contours to the wrapped function as a key=value argument
         kwargs["contours"] = calculate_contours(
-            data, contour_levels, periodic_add, original_coordinates
+            data, contour_levels, periodic_add, original_coordinates=False
         )
 
-        return func(data, contour_levels, *args, **kwargs)
+        return func(data, contour_levels, periodic_add=periodic_add, *args, **kwargs)
 
     return wrapper
