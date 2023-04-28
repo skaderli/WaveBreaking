@@ -20,7 +20,10 @@ __email__ = "severin.kaderli@unibe.ch"
 import xarray as xr
 import pandas as pd
 import geopandas as gpd
+from shapely.geometry import LineString, MultiPolygon
+import shapely.vectorized
 import numpy as np
+from tqdm import tqdm
 import itertools as itertools
 
 from wavebreaking.utils.data_utils import (
@@ -57,12 +60,44 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
     """
 
     # get coordiantes of all events at the same time step
+    def events_to_grid_points(geom, date):
+        """
+        Extract all grid cells that are enclosed by the path of a streamer
+        """
+
+        # get grid points
+        x, y = np.meshgrid(data[kwargs["lon_name"]], data[kwargs["lat_name"]])
+        x, y = x.flatten(), y.flatten()
+
+        def polygon_to_grid(poly):
+            # get interior points and border
+            mask_contain = shapely.vectorized.contains(poly, x, y)
+            mask_touch = shapely.vectorized.touches(poly, x, y)
+
+            return np.c_[x, y][mask_contain | mask_touch]
+
+        # get coords DataFrame
+        if type(geom) == LineString:
+            coords = np.asarray(geom.coords.xy).T
+        elif type(geom) == MultiPolygon:
+            coords = np.vstack([polygon_to_grid(poly) for poly in geom.geoms])
+        else:
+            coords = polygon_to_grid(geom)
+        return pd.DataFrame(
+            {"date": date, "x": coords[:, 0], "y": coords[:, 1]}
+        ).drop_duplicates()
+
+    # get all grid points of all events
     events_concat = pd.concat(
         [
-            pd.DataFrame(
-                [{"date": row.date, "y": p.y, "x": p.x} for p in row.geometry.geoms]
+            events_to_grid_points(row.geometry, row.date)
+            for (index, row) in tqdm(
+                events.iterrows(),
+                desc="Converting to DataArray ",
+                total=len(events),
+                leave=True,
+                position=0,
             )
-            for index, row in events.iterrows()
         ]
     )
 
