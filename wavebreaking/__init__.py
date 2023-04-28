@@ -16,7 +16,10 @@ __email__ = "severin.kaderli@unibe.ch"
 __version__ = "0.2.0"
 
 # import spatial pre-processing functions
-from wavebreaking.processing.spatial import calculate_momentum_flux, calculate_smoothed_field
+from wavebreaking.processing.spatial import (
+    calculate_momentum_flux,
+    calculate_smoothed_field,
+)
 
 # import events post-processing functions
 from wavebreaking.processing.events import to_xarray, track_events
