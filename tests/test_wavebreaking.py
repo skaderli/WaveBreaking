@@ -17,9 +17,10 @@ __email__ = "severin.kaderli@unibe.ch"
 # import modules
 import unittest
 import xarray as xr
+import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import MultiPoint
+from shapely.geometry import Polygon
 import tqdm
 import functools
 import logging
@@ -35,11 +36,10 @@ tqdm.tqdm = silent_tqdm
 
 from wavebreaking.utils.data_utils import check_argument_types, get_dimension_attributes
 from wavebreaking.utils.index_utils import (
-    properties_per_timestep,
+    properties_per_event,
     iterate_time_dimension,
-    iterate_contour_levels, 
+    iterate_contour_levels,
     combine_shared,
-    add_logger,
 )
 from wavebreaking.processing.spatial import (
     calculate_momentum_flux,
@@ -54,7 +54,7 @@ from wavebreaking.indices.streamer_index import calculate_streamers
 from wavebreaking.indices.overturning_index import calculate_overturnings
 from wavebreaking.indices.cutoff_index import calculate_cutoffs
 
-data = xr.open_dataset("tests/data/demo_data.nc").isel(time=slice(0,3))
+data = xr.open_dataset("tests/data/demo_data.nc").isel(time=slice(0, 3))
 
 
 def disablelogging(func):
@@ -101,22 +101,6 @@ class test_data_utils(unittest.TestCase):
 
 
 class test_index_utils(unittest.TestCase):
-    def test_add_logger(self):
-        with self.assertLogs() as captured:
-
-            @add_logger("Logger message")
-            def to_be_decorated(*args, **kwargs):
-                return None
-
-            to_be_decorated()
-
-        self.assertEqual(
-            len(captured.records), 1
-        )  # check that there is only one log message
-        self.assertEqual(
-            captured.records[0].getMessage(), "Logger message"
-        )  # and it is the proper one
-
     def test_iterate_time_dimension(self):
         @get_dimension_attributes("data")
         @iterate_time_dimension
@@ -126,7 +110,6 @@ class test_index_utils(unittest.TestCase):
         df_check = data.drop_vars("lev").time.to_dataframe().reset_index(drop=True)
         self.assertEqual(True, to_be_decorated(data.PV, 2).equals(df_check))
 
-
     def test_iterate_contour_levels(self):
         @get_dimension_attributes("data")
         @iterate_contour_levels
@@ -135,22 +118,24 @@ class test_index_utils(unittest.TestCase):
 
         df_check = pd.DataFrame([-2, 2], columns=["levels"])
         self.assertEqual(True, to_be_decorated(data.PV, [-2, 2]).equals(df_check))
-        
 
     def test_combine_shared(self):
         list_in = [[1, 2, 3], [2, 3, 4], [5, 6]]
         list_out = [[1, 2, 3, 4], [5, 6]]
         self.assertEqual(combine_shared(list_in), list_out)
 
-    def test_properties_per_timestep(self):
-        df_in = pd.DataFrame([[10, 50]], columns=["y", "x"])
+    def test_properties_per_event(self):
+        poly = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
+        date = "1959-06-03T12"
+        level = 2
+        gdf = gpd.GeoDataFrame(
+            pd.DataFrame({"date": [date], "level": [level]}), geometry=[poly]
+        )
 
-        df_check = properties_per_timestep(
-            "1959-06-03T12",
-            2,
-            [df_in],
-            data.PV,
-            data.PV,
+        df_check = properties_per_event(
+            data=data.PV,
+            series=gdf.iloc[0],
+            intensity=data.PV,
             periodic_add=120,
             time_name="time",
             lat_name="lat",
@@ -165,9 +150,7 @@ class test_index_utils(unittest.TestCase):
 
 class test_spatial(unittest.TestCase):
     def test_calculate_momentum_flux(self):
-        self.assertIs(
-            type(calculate_momentum_flux(data.U, data.V)), xr.DataArray
-        )
+        self.assertIs(type(calculate_momentum_flux(data.U, data.V)), xr.DataArray)
 
     def test_calculate_smoothed_filed(self):
         self.assertIs(type(calculate_smoothed_field(data.PV, 10)), xr.DataArray)
@@ -178,19 +161,21 @@ class test_events(unittest.TestCase):
         date = "1959-06-03T12"
         name = "test_flag"
         events = gpd.GeoDataFrame(
-            pd.DataFrame([{"date": date}]), geometry=[MultiPoint([(-148.0, 27.0)])]
+            pd.DataFrame([{"date": date}]),
+            geometry=[Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])],
         )
 
         flag_data = to_xarray(data=data.PV, events=events, name=name)
 
         self.assertIs(type(flag_data), xr.DataArray)
-        self.assertEqual(flag_data.sel(lon=-148, lat=27, time=date).values, 1)
+        self.assertEqual(flag_data.sel(lon=5, lat=5, time=date).values, 1)
         self.assertEqual(flag_data.name, name)
 
     def test_track_events(self):
         date = "1959-06-03T12"
         events = gpd.GeoDataFrame(
-            pd.DataFrame([{"date": date}]), geometry=[MultiPoint([(-148.0, 27.0)])]
+            pd.DataFrame([{"date": date}]),
+            geometry=[Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])],
         )
 
         tracked = track_events(events=events, time_range=24)
@@ -208,9 +193,7 @@ class test_indices(unittest.TestCase):
             periodic_add=120,
             original_coordinates=True,
         )
-        contours_coords = contours_coords[
-            contours_coords.exp_lon == 360
-        ]
+        contours_coords = contours_coords[contours_coords.exp_lon == 360]
 
         contours_index = calculate_contours(
             data=data.PV,
@@ -218,19 +201,19 @@ class test_indices(unittest.TestCase):
             periodic_add=120,
             original_coordinates=False,
         )
-        contours_index = contours_index[
-            contours_index.exp_lon == 480
-        ]
+        contours_index = contours_index[contours_index.exp_lon == 480]
 
         self.assertIs(type(contours_coords), gpd.GeoDataFrame)
         self.assertIs(type(contours_index), gpd.GeoDataFrame)
 
         self.assertEqual(
-            min([p.x for p in contours_coords.iloc[0].geometry.geoms]), -180
+            min(np.asarray(contours_coords.iloc[0].geometry.coords.xy).T[:, 0]), -180
         )
-        self.assertEqual(min([p.x for p in contours_index.iloc[0].geometry.geoms]), 0)
+        self.assertEqual(
+            min(np.asarray(contours_index.iloc[0].geometry.coords.xy).T[:, 0]), 0
+        )
 
-        cols = ["date", "level", "exp_lon", "mean_lat", "geometry"]
+        cols = ["date", "level", "closed", "exp_lon", "mean_lat", "geometry"]
         self.assertEqual(contours_coords.columns.to_list(), cols)
         self.assertEqual(contours_index.columns.to_list(), cols)
 
@@ -242,10 +225,12 @@ class test_indices(unittest.TestCase):
             contours = contours[contours.exp_lon == 480]
 
             self.assertIs(type(contours), gpd.GeoDataFrame)
-            self.assertEqual(min([p.x for p in contours.iloc[0].geometry.geoms]), 0)
             self.assertEqual(
-                contours.columns.to_list(), 
-                ["date", "level", "exp_lon", "mean_lat", "geometry"]
+                min(np.asarray(contours.iloc[0].geometry.coords.xy).T[:, 0]), 0
+            )
+            self.assertEqual(
+                contours.columns.to_list(),
+                ["date", "level", "closed", "exp_lon", "mean_lat", "geometry"],
             )
 
         to_be_decorated(data.PV, contour_levels=2)
@@ -297,7 +282,7 @@ class test_indices(unittest.TestCase):
         )
 
         self.assertIs(type(cutoffs), gpd.GeoDataFrame)
-        self.assertEqual(len(cutoffs), 22)
+        self.assertEqual(len(cutoffs), 20)
         self.assertEqual(
             cutoffs.columns.to_list(),
             ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
