@@ -236,7 +236,9 @@ def plot_step(
     if type(step) is str or type(step) is np.datetime64:
         ds = data.sel({kwargs["time_name"]: step}).to_dataset()
         ds["flag"] = flag_data.sel({kwargs["time_name"]: step})
-        date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime("%Y-%m-%dT%H")
+        date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime(
+            "%Y-%m-%dT%H"
+        )
     else:
         try:
             ds = data.isel({kwargs["time_name"]: step}).to_dataset()
@@ -291,7 +293,7 @@ def plot_step(
         levels=contour_levels,
         linestyles="-",
         linewidths=2,
-        colors="#000000"
+        colors="#000000",
     )
     ds["flag"].where(ds["flag"] > 0).plot.contourf(
         ax=ax,
