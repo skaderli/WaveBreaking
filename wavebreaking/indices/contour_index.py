@@ -41,10 +41,10 @@ def calculate_contours(
     data, contour_levels, periodic_add=120, original_coordinates=True, *args, **kwargs
 ):
     """
-    Calculate contour lines for a set of contour levels
+    Calculate contour lines for a set of contour levels.
     The calculations are based on the measure.find_contours module.
     If periodic_add is provided, the data array is expanded in the longitudinal direction
-    and undulations at the date border are correctly captured.
+    and undulations at the date border are captured correctly.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
     and resolution ("dlon", "dlat") can be passed as key=value argument.
 
@@ -66,10 +66,12 @@ def calculate_contours(
     -------
         contours: geopandas.GeoDataFrame
             GeoDataFrame containing different characteristics of the contours:
-                "date": date of the contour line;
-                "exp_lon": expansion of the contours in the longitudinal direction;
-                "mean_lat": mean latitude of the contours;
-                "geometry": MultiPoint object with the contour coordinates in the format (x,y).
+                * "date": date of the contour line
+                * "level": level of the contour line
+                * "closed": True if contour line is closed
+                * "exp_lon": expansion of the contours in the longitudinal direction
+                * "mean_lat": mean latitude of the contours
+                * "geometry": LineString object with the contour coordinates in the format (x,y)
     """
 
     # select variable and time step for the contour calculation
@@ -114,11 +116,11 @@ def calculate_contours(
         ]
         drop = []
         lens = np.array([len(item) for item in temp])
-        for item in check:
-            if lens[item[0]] == lens[item[1]]:
-                drop.append(max(item))
+        for indices in check:
+            if lens[indices[0]] == lens[indices[1]]:
+                drop.append(max(indices))
             else:
-                drop.append(item[np.argmin(lens[[item[0], item[1]]])])
+                drop.append(indices[np.argmin(lens[[indices[0], indices[1]]])])
 
         return list(set(drop))
 
@@ -164,52 +166,16 @@ def calculate_contours(
             for item in contours_index_expanded
         ]
 
+        # drop duplicates
         contours_index_original = [
-            list(dict.fromkeys(map(tuple, item))) for item in contours_index_original
+            np.asarray(list(dict.fromkeys(map(tuple, item)))) for item in contours_index_original
         ]
-
-        def check_duplicates(list_of_arrays):
-            """
-            Identify duplicates that have been identified due to the periodicity
-            """
-
-            index = np.arange(0, len(contours_index_original))
-            index_combination = list(itertools.combinations(index, r=2))
-
-            drop = []
-            for combination in index_combination:
-                if set(contours_index_original[combination[0]]) < set(
-                    contours_index_original[combination[1]]
-                ):
-                    drop.append(combination[0])
-                if set(contours_index_original[combination[1]]) < set(
-                    contours_index_original[combination[0]]
-                ):
-                    drop.append(combination[1])
-                if set(contours_index_original[combination[1]]) == set(
-                    contours_index_original[combination[0]]
-                ):
-                    drop.append(combination[1])
-
-            return drop
-
-        # get indices of duplicates
-        drop = check_duplicates(contours_index_original)
-
-        # drop duplicate indices
-        contours_index_original = [
-            np.asarray(item)
-            for index, item in enumerate(contours_index_original)
-            if index not in drop
-        ]
-
-        closed = [item for index, item in enumerate(closed) if index not in drop]
 
         # select the original coordinates from the indices
         contours_coordinates_original = [
             np.c_[
-                data[kwargs["lon_name"]].values[item[:, 0].astype("int")],
-                data[kwargs["lat_name"]].values[item[:, 1].astype("int")],
+                data[kwargs["lon_name"]].values[item[:, 0]],
+                data[kwargs["lat_name"]].values[item[:, 1]],
             ]
             for item in contours_index_original
         ]
