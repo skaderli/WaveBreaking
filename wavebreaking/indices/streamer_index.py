@@ -74,17 +74,17 @@ def calculate_streamers(
     Returns
     -------
         streamers: geopandas.GeoDataFrame:
-            GeoDataFrame containing different characteristics of the streamers;
-                "date": date of the streamers;
-                "com": center of mass in the format (x,y);
-                "mean_var": mean of the variable used for the streamer calculations;
-                "area": area of a streamer;
-                "intensity": sum of the intensity (momentum flux);
-                over all streamer grid cells weighted with the corresponding area;
-                "geometry": MultiPoint object with the streamer coordinates in the format (x,y).
+            GeoDataFrame containing different characteristics of the streamers
+                * "date": date of the streamers
+                * "level": level of the contour line
+                * "com": center of mass in the format (x,y)
+                * "mean_var": mean of the variable used for the streamer calculations
+                * "area": area of a streamer
+                * "intensity": sum of the intensity (momentum flux)
+                * "geometry": (Multi)Polygon with coordinates in the format (x,y)
     """
 
-    # filter contours from contour interation
+    # filter contours from contour iteration
     contours = kwargs["contours"]
     contours = contours[contours.exp_lon == contours.exp_lon.max()].reset_index(
         drop=True

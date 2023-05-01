@@ -107,7 +107,7 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
 
         if type(p1) != Polygon:
             poly = transform_polygon(p2)
-        if type(p2) != Polygon:
+        elif type(p2) != Polygon:
             poly = transform_polygon(p1)
         else:
             p1_or = transform_polygon(p1)

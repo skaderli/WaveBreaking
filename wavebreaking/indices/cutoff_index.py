@@ -58,16 +58,16 @@ def calculate_cutoffs(
     -------
         cutoffs: geopandas.GeoDataFrame
             GeoDataFrame containing different characteristics of the cutoffs events:
-                "date": date of the cutoffs;
-                "com": center of mass in the format (x,y);
-                "mean_var": mean of the variable used for the contour calculation;
-                "area": area of a cutoff event;
-                "intensity": sum of the intensity (momentum flux) over all;
-                cutoff grid cells weighted with the corresponding area;
-            "geometry": MultiPoint object with the coordinates of the cutoffs in the format (x,y).
+                * "date": date of the cutoffs
+                * "level": level of the contour line
+                * "com": center of mass in the format (x,y)
+                * "mean_var": mean of the variable used for the contour calculation
+                * "area": area of a cutoff event
+                * "intensity": sum of the intensity (momentum flux)
+                * "geometry": (Multi)Polygon with the coordinates in the format (x,y)
     """
 
-    # filter contours from contour interation
+    # filter contours from contour iteration
     contours = kwargs["contours"]
     contours = contours[
         (contours.exp_lon < contours.exp_lon.max())
