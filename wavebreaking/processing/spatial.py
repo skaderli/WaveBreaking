@@ -18,9 +18,13 @@ __email__ = "severin.kaderli@unibe.ch"
 
 # import modules
 import xarray as xr
-import wrf as wrf
+import numpy as np
+from scipy import ndimage
 
-from wavebreaking.utils.data_utils import check_argument_types, get_dimension_attributes
+from wavebreaking.utils.data_utils import (
+    check_argument_types,
+    get_dimension_attributes
+)
 
 
 @check_argument_types(["u", "v"], [xr.DataArray, xr.DataArray])
@@ -30,7 +34,7 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
     Calculate the momentum flux derived from the product of the deviations
     of both wind components from the zonal mean.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
-    and resolution ("dlon", "dlat") can be passed as key=value argument.
+    and resolution ("dlon", "dlat") can be passed as key=value arguments.
 
     Parameters
     ----------
@@ -45,7 +49,7 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
             Data containing the momentum flux
     """
 
-    # calculate deviation from the zonal mean
+    # calculate deviations from the zonal mean
     u_prime = u - u.mean(kwargs["lon_name"])
     v_prime = v - v.mean(kwargs["lon_name"])
 
@@ -58,13 +62,18 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
 
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
-def calculate_smoothed_field(data, passes, *args, **kwargs):
+def calculate_smoothed_field(data,
+                             passes, 
+                             weights=np.array([[0, 1, 0], [1, 2, 1], [0, 1, 0]]),
+                             mode="wrap",
+                             *args, **kwargs):
     """
-    Calculate smoothed field based on a 5-point smoothing
-    with double-weighted centre and multiple smoothing passes.
-    The smoothing routine is based on the wrf.smooth2d function.
+    Calculate smoothed field based on a two-dimensional weight kernel
+    and multiple smoothing passes. Default weight kernel is a 3x3
+    5-point smoothing with double-weighted centre. The arguments
+    "weight" and "mode" must be accepted by scipy.ndimage.convolve.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
-    and resolution ("dlon", "dlat") can be passed as key=value argument.
+    and resolution ("dlon", "dlat") can be passed as key=value arguments.
 
     Parameters
     ----------
@@ -72,6 +81,12 @@ def calculate_smoothed_field(data, passes, *args, **kwargs):
             data to smooth
         passes : int or float
             number of smoothing passes of the 5-point smoothing
+        weigths : array_like, optional
+            array of weight, two-dimensional
+            (see scipy.ndimage.convolve function)
+        mode : string, optional
+            defines how the array is extended at boundaries
+            (see scipy.ndimage.convolve function)
 
     Returns
     -------
@@ -79,14 +94,22 @@ def calculate_smoothed_field(data, passes, *args, **kwargs):
             Data containing the smoothed field
     """
 
-    # create wrap around the data to get a correct smoothing at the borders
-    smoothed = data.pad({kwargs["lon_name"]: 5}, mode="wrap")
+    # perform smoothing
+    smoothed = []
+    for step in data[kwargs["time_name"]]:
 
-    # perform smoothing and remove wrap
-    smoothed = (
-        wrf.smooth2d(smoothed, passes)
-        .assign_attrs(data.attrs)
-        .isel({kwargs["lon_name"]: slice(5, -5)})
-    )
-
-    return smoothed
+        temp = data.sel({kwargs["time_name"]:step})
+        for p in range(passes):
+            temp = ndimage.convolve(temp, weights=weights, mode=mode) / np.sum(weights)
+        
+        smoothed.append(temp)
+    
+    # define DataArray
+    da = xr.DataArray(smoothed, coords = [data[kwargs["time_name"]], data[kwargs["lat_name"]], data[kwargs["lon_name"]]])
+    da.name = "smooth_" + data.name
+    
+    # assign attributes
+    da = da.assign_attrs(data.attrs)
+    da.attrs["smooth_passes"] = passes
+    
+    return da
