@@ -21,10 +21,7 @@ import xarray as xr
 import numpy as np
 from scipy import ndimage
 
-from wavebreaking.utils.data_utils import (
-    check_argument_types,
-    get_dimension_attributes
-)
+from wavebreaking.utils.data_utils import check_argument_types, get_dimension_attributes
 
 
 @check_argument_types(["u", "v"], [xr.DataArray, xr.DataArray])
@@ -62,16 +59,20 @@ def calculate_momentum_flux(u, v, *args, **kwargs):
 
 @check_argument_types(["data"], [xr.DataArray])
 @get_dimension_attributes("data")
-def calculate_smoothed_field(data,
-                             passes, 
-                             weights=np.array([[0, 1, 0], [1, 2, 1], [0, 1, 0]]),
-                             mode="wrap",
-                             *args, **kwargs):
+def calculate_smoothed_field(
+    data,
+    passes,
+    weights=np.array([[0, 1, 0], [1, 2, 1], [0, 1, 0]]),
+    mode="wrap",
+    *args,
+    **kwargs
+):
     """
     Calculate smoothed field based on a two-dimensional weight kernel
     and multiple smoothing passes. Default weight kernel is a 3x3
     5-point smoothing with double-weighted centre. The arguments
     "weight" and "mode" must be accepted by scipy.ndimage.convolve.
+    Values at the latitude border are always set to NaN.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
     and resolution ("dlon", "dlat") can be passed as key=value arguments.
 
@@ -97,19 +98,31 @@ def calculate_smoothed_field(data,
     # perform smoothing
     smoothed = []
     for step in data[kwargs["time_name"]]:
-
-        temp = data.sel({kwargs["time_name"]:step})
+        temp = data.sel({kwargs["time_name"]: step})
         for p in range(passes):
             temp = ndimage.convolve(temp, weights=weights, mode=mode) / np.sum(weights)
-        
+
+        # set latitude border values to nan
+        border_size = int(weights.shape[0] / 2 + 0.5)
+        temp[np.arange(-border_size, border_size), :] = np.nan
+
         smoothed.append(temp)
-    
+
     # define DataArray
-    da = xr.DataArray(smoothed, coords = [data[kwargs["time_name"]], data[kwargs["lat_name"]], data[kwargs["lon_name"]]])
+    da = xr.DataArray(
+        smoothed,
+        coords=[
+            data[kwargs["time_name"]],
+            data[kwargs["lat_name"]],
+            data[kwargs["lon_name"]],
+        ],
+    )
+
+    # set name
     da.name = "smooth_" + data.name
-    
+
     # assign attributes
     da = da.assign_attrs(data.attrs)
     da.attrs["smooth_passes"] = passes
-    
+
     return da
