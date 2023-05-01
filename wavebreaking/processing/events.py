@@ -148,7 +148,9 @@ def track_events(events, time_range):
     events = events.reset_index(drop=True)
 
     combine = []
-    for date in dates:
+    for date in tqdm(
+        dates, desc="Tracking events", total=len(dates), leave=True, position=0
+    ):
         dates_dif = (dates - date).astype(int)
         check = (dates_dif >= 0) & (dates_dif <= time_range)
         index_combinations = itertools.combinations(events[check].index, r=2)
