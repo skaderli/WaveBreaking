@@ -5,7 +5,6 @@ geopandas
 scikit-image
 scipy
 tqdm
-wrf-python
 shapely
 scikit-learn
 matplotlib
