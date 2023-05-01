@@ -305,10 +305,10 @@ def plot_step(
 
     # add the date to the figure
     plt.text(
-        0.99,
-        0.99,
+        1,
+        1,
         "Date: " + str(date),
-        fontsize=12,
+        fontsize=11,
         fontweight="bold",
         ha="right",
         va="top",
@@ -420,7 +420,7 @@ def plot_tracks(
             # plot the coordinates of the events
             if plot_events is True:
                 group.plot(
-                    ax=ax, color="black", transform=data_crs, alpha=0.2, markersize=3
+                    ax=ax, color="black", transform=data_crs, alpha=0.1, markersize=3
                 )
 
             max_lon = max(data[kwargs["lon_name"]].values) + kwargs["dlon"]
@@ -433,7 +433,7 @@ def plot_tracks(
 
             # plot paths that do not need to be split
             for item in no_split:
-                ev_seg = np.asarray(group[item[0]: item[1] + 1].com.tolist())
+                ev_seg = np.asarray(group[item[0] : item[1] + 1].com.tolist())
 
                 ax.plot(
                     ev_seg[:, 0], ev_seg[:, 1], "-", transform=data_crs, color="black"
@@ -441,7 +441,7 @@ def plot_tracks(
 
             # plot paths that have to be split
             for item in split:
-                ev_seg = np.asarray(group[item[0]: item[1] + 1].com.tolist())
+                ev_seg = np.asarray(group[item[0] : item[1] + 1].com.tolist())
 
                 # upstream split
                 if np.diff(ev_seg[:, 0]) < 0:
