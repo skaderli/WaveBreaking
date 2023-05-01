@@ -119,7 +119,7 @@ More information about the functions presented below can be found in the `docume
 Data pre-processing:
 ~~~~~~~~~~       
 
-Optionally, the variable intended for the RWB calculations can be smoothed. The smoothing routine applies a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. This routine returnes a xarray.DataArray with the variable "smooth_<variable>". 
+Optionally, the variable intended for the RWB calculations can be smoothed. The smoothing routine applies by default a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. Since the smoothing is based on the scipy.ndimage.convolve function, array-like weights and the mode for handling boundary values can be passed as an argument. This routine returnes a xarray.DataArray with the variable "smooth_<variable>". 
 
 .. code-block:: python
 
@@ -128,8 +128,11 @@ Optionally, the variable intended for the RWB calculations can be smoothed. The 
         demo_data = xr.open_dataset("tests/data/demo_data.nc")
 
         #smooth variable with 5 passes
+        import numpy as np
         smoothed = wb.calculate_smoothed_field(data=demo_data.PV, 
-                                               passes=5)
+                                               passes=5,
+                                               weights=np.array([[0, 1, 0], [1, 2, 1], [0, 1, 0]]), # optional
+                                               mode="wrap") # optional
         
 The wavebreaking module calculates the intensity for each identified event, if an intensity field is provided. In my master thesis, the intenstiy is represented by the momentum flux derived from the product of the (daily) zonal deviations of both wind components. The routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
