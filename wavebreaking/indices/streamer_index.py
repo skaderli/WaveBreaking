@@ -271,4 +271,8 @@ def calculate_streamers(
             position=0,
         )
     ]
-    return pd.concat(streamers).reset_index(drop=True)
+
+    if len(streamers) == 0:
+        return gpd.GeoDataFrame()
+    else:
+        return pd.concat(streamers).reset_index(drop=True)

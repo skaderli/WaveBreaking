@@ -198,4 +198,8 @@ def calculate_overturnings(
             position=0,
         )
     ]
-    return pd.concat(overturnings).reset_index(drop=True)
+
+    if len(overturnings) == 0:
+        return gpd.GeoDataFrame()
+    else:
+        return pd.concat(overturnings).reset_index(drop=True)
