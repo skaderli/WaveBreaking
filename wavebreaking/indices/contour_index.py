@@ -162,7 +162,7 @@ def calculate_contours(
     else:
         # get original coordinates
         contours_index_original = [
-            np.c_[item[:, 0] % kwargs["nlon"], item[:, 1] % kwargs["nlat"]]
+            np.c_[item[:, 0] % kwargs["nlon"], item[:, 1]]
             for item in contours_index_expanded
         ]
 
