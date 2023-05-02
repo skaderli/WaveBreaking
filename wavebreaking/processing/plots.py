@@ -39,7 +39,7 @@ from wavebreaking.processing import spatial
 def plot_clim(
     flag_data,
     seasons=None,
-    proj=ccrs.PlateCarree(),
+    proj=None,
     size=(12, 8),
     smooth_passes=5,
     periodic=True,
@@ -62,7 +62,7 @@ def plot_clim(
         seasons : list or array, optional
             months of the seasons for occurrence frequency calculation (e.g. [11,12,1])
         proj : cartopy.crs, optional
-            cartopy projection
+            cartopy projection object
         size : tuple of integers, optional
             size of the figure in the format (width, height)
         smooth_passes : int or float, optional
@@ -86,6 +86,7 @@ def plot_clim(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
+    if proj is None: proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -177,7 +178,7 @@ def plot_step(
     data,
     step,
     contour_levels,
-    proj=ccrs.PlateCarree(),
+    proj=None,
     size=(12, 8),
     periodic=True,
     labels=True,
@@ -204,7 +205,7 @@ def plot_step(
         contour_level : array_like
             contour levels that are shown in the plot
         proj : cartopy.crs, optional
-            cartopy projection
+            cartopy projection object
         size : tuple of integers, optional
             size of the figure in the format (width, height)
         periodic : bool, optional
@@ -228,6 +229,7 @@ def plot_step(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
+    if proj is None: proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -354,7 +356,7 @@ def plot_step(
 def plot_tracks(
     data,
     events,
-    proj=ccrs.PlateCarree(),
+    proj=None,
     size=(12, 8),
     min_path=0,
     plot_events=False,
@@ -375,7 +377,7 @@ def plot_tracks(
         events: pd.DataFrame
             DataFrame with the date, coordinates and label of the identified events
         proj : cartopy.crs, optional
-            cartopy projection
+            cartopy projection object
         size : tuple of integers, optional
             size of the figure in the format (width, height)
         min_path: int, optional
@@ -395,6 +397,7 @@ def plot_tracks(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
+    if proj is None: proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
