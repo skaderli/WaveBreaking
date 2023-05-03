@@ -59,7 +59,7 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
             Data with events flagged with the value 1
     """
 
-    # get coordiantes of all events at the same time step
+    # get coordinates of all events at the same time step
     def events_to_grid_points(geom, date):
         """
         Extract all grid cells that are enclosed by the path of a streamer
@@ -126,7 +126,7 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
 def track_events(events, time_range):
     """
     Temporal tracking of events.
-    Events receive the same label if they spacially overlap at step t and at step t+1.
+    Events receive the same label if they spatially overlap at step t and at step t+1.
 
     Parameters
     ----------
@@ -170,7 +170,7 @@ def track_events(events, time_range):
     # initiate label column
     events["label"] = events.index
 
-    # assign lables to the events
+    # assign labels to the events
     for item in combine:
         events.loc[item, "label"] = min(item)
 

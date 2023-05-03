@@ -72,7 +72,7 @@ def plot_clim(
         labels : bool, optional
             If False, no labels are added to the plot
         levels : list or array, optional
-            Colorbar levles. If not provided, default levels are used.
+            Colorbar levels. If not provided, default levels are used.
         cmap : string, optional
             Name of a valid cmap. If not provided, a default cmap is used.
         title : string, optional
@@ -86,7 +86,8 @@ def plot_clim(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None: proj = data_crs
+    if proj is None:
+        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -213,11 +214,11 @@ def plot_step(
         labels : bool, optional
             If False, no labels are added to the plot
         levels : list or array, optional
-            Colorbar levles. If not provided, default levels are used.
+            Colorbar levels. If not provided, default levels are used.
         cmap : string, optional
             Name of a valid cmap. If not provided, a default cmap is used.
         color_events : string, optional
-            Color of the plottet events
+            Color of the events
         title : string, optional
             Title of the plot
 
@@ -229,7 +230,8 @@ def plot_step(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None: proj = data_crs
+    if proj is None:
+        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
@@ -307,10 +309,10 @@ def plot_step(
 
     # add the date to the figure
     plt.text(
-        1,
-        1,
+        0.99,
+        0.98,
         "Date: " + str(date),
-        fontsize=11,
+        fontsize=10,
         fontweight="bold",
         ha="right",
         va="top",
@@ -397,7 +399,8 @@ def plot_tracks(
 
     # define cartopy projection
     data_crs = ccrs.PlateCarree()
-    if proj is None: proj = data_crs
+    if proj is None:
+        proj = data_crs
 
     # initialize figure
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
