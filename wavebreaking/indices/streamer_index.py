@@ -250,14 +250,14 @@ def calculate_streamers(
         dates = pd.DataFrame({"date": [series.date for i in range(0, len(df_bp))]})
         levels = pd.DataFrame({"level": [series.level for i in range(0, len(df_bp))]})
         polys = [
-            Polygon(np.array(contour_index[int(row.ind1) : int(row.ind2) + 1]))
+            Polygon(contour_index[int(row.ind1) : int(row.ind2) + 1])
             for index, row in df_bp.iterrows()
         ]
         streamers.append(
             gpd.GeoDataFrame(pd.concat([dates, levels], axis=1), geometry=polys)
         )
 
-    # define GeoDataFrame
+    # concat GeoDataFrames
     gdf = pd.concat(streamers).reset_index(drop=True)
 
     # calculate properties and transform coordinates

@@ -160,33 +160,28 @@ def calculate_contours(
         return contour_to_dataframe(contours_index_expanded)
 
     else:
-        # get original coordinates
-        contours_index_original = [
-            np.c_[item[:, 0] % kwargs["nlon"], item[:, 1]]
+        # select the original coordinates from the indices
+        contours_coordinates_original = [
+            np.c_[
+                data[kwargs["lon_name"]].values[item[:, 0] % kwargs["nlon"]],
+                data[kwargs["lat_name"]].values[item[:, 1]],
+            ]
             for item in contours_index_expanded
         ]
 
         # drop duplicates
-        contours_index_original = [
-            np.asarray(list(dict.fromkeys(map(tuple, item)))) for item in contours_index_original
-        ]
-
-        # select the original coordinates from the indices
         contours_coordinates_original = [
-            np.c_[
-                data[kwargs["lon_name"]].values[item[:, 0]],
-                data[kwargs["lat_name"]].values[item[:, 1]],
-            ]
-            for item in contours_index_original
+            np.asarray(list(dict.fromkeys(map(tuple, item))))
+            for item in contours_coordinates_original
         ]
 
-        # return contours in original cooridnates as a geopandas.GeoDataFrame
+        # return contours in original coordinates as a geopandas.GeoDataFrame
         return contour_to_dataframe(contours_coordinates_original)
 
 
 def decorator_contour_calculation(func):
     """
-    decorator to wrap the contour calulcation around the index functions
+    decorator to wrap the contour calculation around the index functions
     """
 
     @functools.wraps(func)

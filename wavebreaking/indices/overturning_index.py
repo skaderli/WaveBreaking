@@ -184,7 +184,7 @@ def calculate_overturnings(
             gpd.GeoDataFrame(pd.concat([dates, levels], axis=1), geometry=polys)
         )
 
-    # define GeoDataFrame
+    # concat GeoDataFrames
     gdf = pd.concat(overturnings).reset_index(drop=True)
 
     # calculate properties and transform coordinates
