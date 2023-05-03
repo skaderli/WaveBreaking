@@ -19,7 +19,7 @@ __email__ = "severin.kaderli@unibe.ch"
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Polygon, box, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon
 import shapely.vectorized
 from tqdm import tqdm
 import functools
@@ -44,26 +44,19 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
         x, y = x.flatten(), y.flatten()
 
         # get interior points and border
-        mask_contain = shapely.vectorized.contains(poly, x, y)
-        mask_touch = shapely.vectorized.touches(poly, x, y)
+        mask_contain = shapely.vectorized.contains(poly.buffer(0.5), x, y)
 
-        # get DataFrames
-        interior = pd.DataFrame(np.c_[x, y][mask_contain], columns=["x", "y"]).astype(
-            "int"
-        )
-        exterior = pd.DataFrame(np.c_[x, y][mask_touch], columns=["x", "y"]).astype(
-            "int"
-        )
-
-        return pd.concat([exterior, interior]).drop_duplicates()
+        return pd.DataFrame(np.c_[x, y][mask_contain], columns=["x", "y"]).astype("int")
 
     # get grid points
     points = polygon_to_grid_points(series.geometry)
 
-    # select date
+    # select date abd coordinates
     da = data.sel({kwargs["time_name"]: series.date}).values
+    lons = data[kwargs["lon_name"]].values
+    lats = data[kwargs["lat_name"]].values
 
-    # Calculate cell weight following the defintion by Daniel Steinfeld
+    # Calculate cell weight following the definition by Daniel Steinfeld
     weight_lat = np.cos(data[kwargs["lat_name"]].values * np.pi / 180)
     weight = (
         np.ones((kwargs["nlat"], kwargs["nlon"]))
@@ -74,48 +67,33 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
     areas = weight[points.y, points.x % kwargs["nlon"]]
     area = np.sum(areas)
     mean_var = np.dot(da[points.y, points.x % kwargs["nlon"]], areas) / area
+
     com = np.sum(points.multiply(areas, axis=0), axis=0) / area
-
-    # transform coordinates
-    lons = data[kwargs["lon_name"]].values
-    lats = data[kwargs["lat_name"]].values
-
     com = [(lons[int(com.x) % kwargs["nlon"]], lats[int(com.y)])]
 
-    def transform_polygon(poly):
-        """
-        transfrom coordinates of a Polygon
-        """
-        coords = np.asarray(poly.exterior.coords.xy).T.astype("int")
-        coords_original = np.c_[lons[coords[:, 0] % kwargs["nlon"]], lats[coords[:, 1]]]
-        return Polygon(coords_original)
+    # transform coordinates and define polygons
+    exterior = np.asarray(series.geometry.exterior.coords.xy).T.astype("int")
 
-    # check for Polygons that cross date border and split
-    exterior = pd.DataFrame(
-        np.asarray(series.geometry.exterior.coords.xy).T, columns=["x", "y"]
-    ).astype("int")
-    if any(exterior.x >= kwargs["nlon"]) & any(exterior.x < kwargs["nlon"]):
-        # check overlap with original grid
-        original_grid = box(0, 0, kwargs["nlon"] - 0.01, kwargs["nlat"])
-        p1 = series.geometry.intersection(original_grid)
+    if any(exterior[:, 0] >= kwargs["nlon"]):
+        ext_east = exterior[exterior[:, 0] < kwargs["nlon"]]
+        ext_west = exterior[exterior[:, 0] >= kwargs["nlon"]]
 
-        # check overlap with added grid due to periodicity
-        add_grid = box(
-            kwargs["nlon"], 0, kwargs["nlon"] - 0.01 + periodic_add, kwargs["nlat"]
-        )
-        p2 = series.geometry.intersection(add_grid)
-
-        if type(p1) != Polygon:
-            poly = transform_polygon(p2)
-        elif type(p2) != Polygon:
-            poly = transform_polygon(p1)
+        if len(ext_east) < 4:
+            poly = Polygon(
+                np.c_[lons[ext_west[:, 0] % kwargs["nlon"]], lats[ext_west[:, 1]]]
+            )
+        elif len(ext_west) < 4:
+            poly = Polygon(np.c_[lons[ext_east[:, 0]], lats[ext_east[:, 1]]])
         else:
-            p1_or = transform_polygon(p1)
-            p2_or = transform_polygon(p2)
+            poly_east = Polygon(np.c_[lons[ext_east[:, 0]], lats[ext_east[:, 1]]])
+            poly_west = Polygon(
+                np.c_[lons[ext_west[:, 0] % kwargs["nlon"]], lats[ext_west[:, 1]]]
+            )
 
-            poly = MultiPolygon([p1_or, p2_or])
+            poly = MultiPolygon([poly_east, poly_west])
+
     else:
-        poly = Polygon(np.c_[lons[exterior.x % kwargs["nlon"]], lats[exterior.y]])
+        poly = Polygon(np.c_[lons[exterior[:, 0]], lats[exterior[:, 1]]])
 
     # store properties in dict
     prop_dict = {
