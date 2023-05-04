@@ -25,6 +25,9 @@ import shapely.vectorized
 import numpy as np
 from tqdm import tqdm
 import itertools as itertools
+from sklearn.metrics import DistanceMetric
+
+dist = DistanceMetric.get_metric("haversine")
 
 from wavebreaking.utils.data_utils import (
     check_argument_types,
@@ -123,10 +126,11 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
 
 @check_argument_types(["events"], [pd.DataFrame])
 @check_empty_dataframes
-def track_events(events, time_range):
+def track_events(events, time_range, method="by_overlapping", radius=1000):
     """
     Temporal tracking of events.
-    Events receive the same label if they spatially overlap at step t and at step t+1.
+    Events receive the same label if they spatially overlap at step t
+    and t + time_range.
 
     Parameters
     ----------
@@ -134,6 +138,14 @@ def track_events(events, time_range):
             GeoDataFrame with the date and coordinates of each identified event
         time_range: int or float
             Time range in hours for combining spatially overlapping events
+        method : {"by_overlapping", "by_radius"}, optional
+            Method for temporally tracking the events:
+            * "by_overlapping": Events receive the same label if they spatially
+                overlap at step t and t + time_range.
+            * "by_radius": Events receive the same label if their centre of mass
+                is inside the distance "radius"
+        radius : int or float, optional
+            Radius for tracking events with the "by_radius" method
 
     Returns
     -------
@@ -151,18 +163,39 @@ def track_events(events, time_range):
     for date in tqdm(
         dates, desc="Tracking events", total=len(dates), leave=True, position=0
     ):
+        # select events that are in range of time_range
         dates_dif = (dates - date).astype(int)
         check = (dates_dif >= 0) & (dates_dif <= time_range)
         index_combinations = itertools.combinations(events[check].index, r=2)
-        combine.append(
-            [
-                combination
-                for combination in index_combinations
-                if events.iloc[combination[0]].geometry.intersects(
-                    events.iloc[combination[1]].geometry
-                )
-            ]
-        )
+
+        if method == "by_radius":
+            # check which centre of mass are in range of "radius"
+            combine.append(
+                [
+                    combination
+                    for combination in index_combinations
+                    if dist.pairwise(
+                        np.radians(
+                            list(events.iloc[[combination[0], combination[1]]].com)
+                        )
+                    )[0, 1]
+                    * 6371
+                    <= radius
+                ]
+            )
+        elif method == "by_overlapping":
+            # check which events are overlapping
+            combine.append(
+                [
+                    combination
+                    for combination in index_combinations
+                    if events.iloc[combination[0]].geometry.intersects(
+                        events.iloc[combination[1]].geometry
+                    )
+                ]
+            )
+        else:
+            raise ValueError("method not supported!")
 
     # combine tracked indices to groups
     combine = index_utils.combine_shared(list(itertools.chain.from_iterable(combine)))
