@@ -119,7 +119,7 @@ More information about the functions presented below can be found in the `docume
 Data pre-processing:
 ~~~~~~~~~~       
 
-Optionally, the variable intended for the RWB calculations can be smoothed. The smoothing routine applies by default a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. Since the smoothing is based on the scipy.ndimage.convolve function, array-like weights and the mode for handling boundary values can be passed as an argument. This routine returnes a xarray.DataArray with the variable "smooth_<variable>". 
+Optionally, the variable intended for the RWB calculations can be smoothed. The smoothing routine applies by default a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. Since the smoothing is based on the scipy.ndimage.convolve function, array-like weights and the mode for handling boundary values can be passed as an argument. This routine returns a xarray.DataArray with the variable "smooth_<variable>". 
 
 .. code-block:: python
 
@@ -134,7 +134,7 @@ Optionally, the variable intended for the RWB calculations can be smoothed. The 
                                                weights=np.array([[0, 1, 0], [1, 2, 1], [0, 1, 0]]), # optional
                                                mode="wrap") # optional
         
-The wavebreaking module calculates the intensity for each identified event, if an intensity field is provided. In my master thesis, the intenstiy is represented by the momentum flux derived from the product of the (daily) zonal deviations of both wind components. The routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+The wavebreaking module calculates the intensity for each identified event, if an intensity field is provided. In my master thesis, the intensity is represented by the momentum flux derived from the product of the (daily) zonal deviations of both wind components. The routine creates a xarray.DataArray with the variable "mflux". More information can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
 .. code-block:: python
 
@@ -192,21 +192,50 @@ All three RWB indices perform the contour calculation before identifying the RWB
                                        min_exp=5, # optional
                                        intensity=mflux, # optional
                                        periodic_add=120) # optional
+                                       
+Event classification:
+~~~~~~~~~~
+
+The event classification is based on selecting the events of interest from the geopandas.GeoDataFrame provided by the index calculation functions. 
+
+Some suggested classifications:
+
+.. code-block:: python
+
+        # stratospheric and tropospheric (only for streamers and cutoffs)
+        stratospheric = events[events.mean_var >= contour_level]
+        tropospheric = events[events.mean_var < contour_level]
+        
+        # anticyclonic and cyclonic by intensity
+        anticyclonic = events[events.intensity >= 0]
+        cyclonic = events[events.intensity < 0]
+        
+        # anticyclonic and cyclonic by orientation (only for overturning events)
+        anticyclonic = events[events.orientation == "anticyclonic"]
+        cyclonic = events[events.orientation == "cyclonic"]
+
+
+In addition, a subset of events with certain characteristics can be selected, e.g. the 10% largest events:
+
+.. code-block:: python
+
+        # 10 percent largest events
+        large = events[events.area >= events.area.quantile(0.9)]
 
 
 Transform to xarray.DataArray:
 ~~~~~~~~~~
 
-To calculate and visualize the occurrence of RWB events, it comes in handy to transform the coordinates of the events into a xarray.DataArray. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to filter the geopandas.GeoDataFrame for the desired events (e.g., stratospheric events with PV values larger than 2 PVU).
+To calculate and visualize the occurrence of RWB events, it comes in handy to transform the coordinates of the events into a xarray.DataArray. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to classify the events first and only use for example stratospheric events. 
 
 .. code-block:: python
 
-        #filter events
-        f_events = streamers[streamers.mean_var >= 2]
+        #classify events
+        stratospheric = streamers[streamers.mean_var >= 2]
         
         #transform to xarray.DataArray
         flag_array = wb.to_xarray(data=smoothed, 
-                                  events=f_events)
+                                  events=stratospheric)
 
         
 Visualization: 
@@ -266,16 +295,18 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 Event tracking:
 ~~~~~~~~~~~
 
-Last but not least, the WaveBreaking provides a routine to track events over time. Events that overlap between two time steps receive the same label. Again, it is suggested to filter the events first. This routine adds a column "label" to the events geopandas.GeoDataFrame.
+Last but not least, WaveBreaking provides a routine to track events over time. Beside the time range of the temporal tracking, two methods for defining the spatial coherence are available. Events receive the same label if they either spatially overlap (method "by_overlapping") or if the centre of mass lies in a certain radius (method "by_radius"). Again, it is suggested to classify the events first and only use for example stratospheric events. This routine adds a column "label" to the events geopandas.GeoDataFrame.
 
 .. code-block:: python
 
-        #filter events
-        f_events = streamers[streamers.mean_var >= 2] #use every second event for clarity
+        #classify events
+        stratospheric = streamers[streamers.mean_var >= 2]
 
         #track events
-        wb.event_tracking(events = f_events, 
-                          time_range = 24) #time range for temporal tracking in hours
+        wb.event_tracking(events=f_events, 
+                          time_range=24, #time range for temporal tracking in hours
+                          method="by_overlapping", #method for tracking
+                          radius=1000) #radius in km for method "by_radius"
 
 The result can be visualized by plotting the paths of the tracked events:
 
