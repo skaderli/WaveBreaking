@@ -176,15 +176,21 @@ def calculate_overturnings(
 
         # check if event is cyclonic by orientation
         def check_orientation(df):
-            lat_west = data.lat[contour_index[contour_index.x.eq(df.min_lon)].y.values[0]].values
-            lat_east = data.lat[contour_index[contour_index.x.eq(df.max_lon)].y.values[-1]].values
+            lat_west = data.lat[
+                contour_index[contour_index.x.eq(df.min_lon)].y.values[0]
+            ].values
+            lat_east = data.lat[
+                contour_index[contour_index.x.eq(df.max_lon)].y.values[-1]
+            ].values
 
             if abs(lat_west) <= abs(lat_east):
                 return "cyclonic"
             else:
                 return "anticyclonic"
-    
-        orientation = pd.DataFrame({"orientation": [check_orientation(row) for index, row in df_ot.iterrows()]})
+
+        orientation = pd.DataFrame(
+            {"orientation": [check_orientation(row) for index, row in df_ot.iterrows()]}
+        )
 
         # define Polygons
         dates = pd.DataFrame({"date": [series.date for i in range(0, len(df_ot))]})
@@ -194,7 +200,9 @@ def calculate_overturnings(
             for index, row in df_ot.iterrows()
         ]
         overturnings.append(
-            gpd.GeoDataFrame(pd.concat([dates, levels, orientation], axis=1), geometry=polys)
+            gpd.GeoDataFrame(
+                pd.concat([dates, levels, orientation], axis=1), geometry=polys
+            )
         )
 
     # concat GeoDataFrames
@@ -217,5 +225,5 @@ def calculate_overturnings(
     else:
         overturnings = pd.concat(overturnings).reset_index(drop=True)
         overturnings.insert(6, "orientation", gdf.orientation)
-        
+
         return overturnings
