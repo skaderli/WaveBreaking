@@ -22,13 +22,13 @@ WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 
 .. start_intro
         
-WaveBreaking is a python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example the 2 Potential Vorticity Units (PVU) contour line in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of RWB events such as area and intensity are calculated. The event tracking provides information about the temporal evolution of the RWB events. Finally, the implemented plotting methods allow for a first visualization. 
+WaveBreaking is a Python package that provides detection, classification and tracking of Rossby Wave Breaking (RWB) in weather and climate data. The detection of RWB is based on analyzing the dynamical tropopause represented by a closed contour line encircling the pole as for example the 2 Potential Vorticity Units (PVU) contour line in Potential Vorticity (PV) fields. By applying three different breaking indices, regions of RWB are identified and different characteristics of the events such as area and intensity are calculated. The event tracking provides information about the temporal evolution of the RWB events. Finally, the implemented plotting methods allow for a first visualization. This tool was developed during my master studies at the University of Bern. 
 
 The detection of RWB is based on applying a RWB index to the dynamical tropopause. The WaveBreaking package provides three different RWB indices:
 
 * **Streamer Index:** The streamer index is based on work by `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_). Streamers are elongated structures present on the contour line that represents the dynamical tropopause. They can be described by a pair of contour points that are close together considering their geographical distance but far apart considering their distance connecting the points on the contour. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
-* **Overturning Index:** The overturning index is based on work by `Barnes and Hartmann (2012)`_. This index identifies overturning structures of the contour line that represents the dynamical tropopause. An overturning of the contour line is present if the contour intersects at least three times with the same longitude. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+* **Overturning Index:** The overturning index is based on work by `Barnes and Hartmann (2012)`_. This index identifies overturning structures of the contour line. An overturning of the contour line is present if the contour intersects at least three times with the same longitude. Further description can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
 
 * **Cutoff Index:** The Cutoff Index provides information about the decaying of a wave breaking event. From a Potential Vorticity perspective, a wave breaking event is formed by an elongation of the 2 PVU contour line. These so-called streamers can elongate further until they separate from the main stratospheric or tropospheric body. The separated structure is referred to as a cutoff (`Wernli and Sprenger (2007)`_.
 
@@ -38,7 +38,7 @@ The detection of RWB is based on applying a RWB index to the dynamical tropopaus
 
 The tool is designed to analyze gridded data provided as an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_. Output is provided either in a `geopandas.GeoDataFrame <https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.html>`_ or in an `xarray.DataArray <https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html>`_.
 
-The analysis of the input data and parts of the tracking function are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
+Parts of the data setup functions and of the tracking function are based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
 **Important information:**
 
@@ -63,7 +63,7 @@ To install WaveBreaking, run this command in your terminal:
 
 This is the preferred method to install WaveBreaking, as it will always install the most recent stable release. 
 Your virtual environment is automatically checked for the necessary dependencies. 
-After the installation, you can start calculating wave breaking events by following the tutorial.
+After the installation, you can start calculating RWB events by following the tutorial below.
 
 From sources
 ~~~~~~~~
@@ -74,7 +74,7 @@ The sources for WaveBreaking can be downloaded in two different ways. You can ei
 
         pip install git+https://github.com/skaderli/WaveBreaking
 
-Or you can clone the GitHub repository first and then install WaveBreaking locally. Start with setting the working directory and cloning the repository.
+Or you can clone the GitHub repository first and then install WaveBreaking locally. For that, start with setting the working directory and cloning the repository.
 
 ..  code-block:: 
 
@@ -123,11 +123,11 @@ Optionally, the variable intended for the RWB calculations can be smoothed. The 
 
 .. code-block:: python
 
-        #read your data
+        # read data
         import xarray as xr
         demo_data = xr.open_dataset("tests/data/demo_data.nc")
 
-        #smooth variable with 5 passes
+        # smooth variable with 5 passes
         import numpy as np
         smoothed = wb.calculate_smoothed_field(data=demo_data.PV, 
                                                passes=5,
@@ -138,7 +138,7 @@ The wavebreaking module calculates the intensity for each identified event, if a
 
 .. code-block:: python
 
-        #calculate momentum flux
+        # calculate momentum flux
         mflux = wb.calculate_momentum_flux(u=demo_data.U, 
                                            v=demo_data.V)
         
@@ -146,13 +146,13 @@ The wavebreaking module calculates the intensity for each identified event, if a
 Contour calculation:
 ~~~~~~~~~~
        
-All RWB indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for processing data of both hemispheres at the same time (e.g., contour levels -2 and 2). 
+All RWB indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for processing data of both hemispheres at the same time (e.g., contour levels -2 and 2). The contour calculation is included in the RWB index functions and doesn't need to be performed beforehand. 
 
 If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. With "original_coordinates = False", array indices are returned (used for the index calculations) instead of original coordinates. The routine returns a geopandas.GeoDataFrame with a geometry column and some properties for each contour. 
 
 .. code-block:: python
 
-        #calculate contours
+        # calculate contours
         contours = wb.calculate_contours(data=smoothed, 
                                          contour_levels=[-2, 2], 
                                          periodic_add=120, # optional
@@ -166,7 +166,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
 
 .. code-block:: python
 
-        #calculate streamers
+        # calculate streamers
         streamers = wb.calculate_streamers(data=smoothed, 
                                            contour_levels=[-2, 2], 
                                            geo_dis=800, # optional
@@ -176,7 +176,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
                             
 .. code-block:: python                  
 
-        #calculate overturnings
+        # calculate overturnings
         overturnings = wb.calculate_overturnings(data=smoothed, 
                                                  contour_levels=[-2, 2], 
                                                  range_group=5, # optional
@@ -186,7 +186,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
         
 .. code-block:: python
  
-        #calculate cutoffs
+        # calculate cutoffs
         cutoffs = wb.calculate_cutoffs(data=smoothed, 
                                        contour_levels=[-2, 2], 
                                        min_exp=5, # optional
@@ -223,17 +223,17 @@ In addition, a subset of events with certain characteristics can be selected, e.
         large = events[events.area >= events.area.quantile(0.9)]
 
 
-Transform to xarray.DataArray:
+Transform to DataArray:
 ~~~~~~~~~~
 
 To calculate and visualize the occurrence of RWB events, it comes in handy to transform the coordinates of the events into a xarray.DataArray. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to classify the events first and only use for example stratospheric events. 
 
 .. code-block:: python
 
-        #classify events
+        # classify events
         stratospheric = streamers[streamers.mean_var >= 2]
         
-        #transform to xarray.DataArray
+        # transform to xarray.DataArray
         flag_array = wb.to_xarray(data=smoothed, 
                                   events=stratospheric)
 
@@ -247,7 +247,7 @@ To analyze a specific large scale situation, the RWB events on a single time ste
 
 .. code-block:: python
 
-        #import cartopy for projection
+        # import cartopy for projection
         import cartopy.crs as ccrs
         
         wb.plot_step(flag_data=flag_array, 
@@ -299,10 +299,10 @@ Last but not least, WaveBreaking provides a routine to track events over time. B
 
 .. code-block:: python
 
-        #classify events
+        # classify events
         stratospheric = streamers[streamers.mean_var >= 2]
 
-        #track events
+        # track events
         wb.event_tracking(events=f_events, 
                           time_range=24, #time range for temporal tracking in hours
                           method="by_overlapping", #method for tracking
