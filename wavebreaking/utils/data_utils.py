@@ -84,6 +84,7 @@ def get_time_name(data):
             or (
                 "units" in data[dim].encoding and "since" in data[dim].encoding["units"]
             )
+            or (data[dim].dtype == np.dtype("datetime64[ns]"))
             or (dim in ["time"])
         ):
             return dim
