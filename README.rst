@@ -231,7 +231,7 @@ To calculate and visualize the occurrence of RWB events, it comes in handy to tr
 .. code-block:: python
 
         # classify events
-        stratospheric = streamers[streamers.mean_var >= 2]
+        stratospheric = streamers[streamers.mean_var.abs() >= 2]
         
         # transform to xarray.DataArray
         flag_array = wb.to_xarray(data=smoothed, 
@@ -300,24 +300,24 @@ Last but not least, WaveBreaking provides a routine to track events over time. B
 .. code-block:: python
 
         # classify events
-        stratospheric = streamers[streamers.mean_var >= 2]
+        anticyclonic = overturnings[overturnings.orientation == "anticyclonic"]
 
         # track events
-        wb.event_tracking(events=f_events, 
-                          time_range=24, #time range for temporal tracking in hours
-                          method="by_overlapping", #method for tracking
-                          radius=1000) #radius in km for method "by_radius"
+        tracked = wb.event_tracking(events=anticyclonic, 
+                                    time_range=6, #time range for temporal tracking in hours
+                                    method="by_radius", #method for tracking
+                                    radius=1000) #radius in km for method "by_radius"
 
 The result can be visualized by plotting the paths of the tracked events:
 
 .. code-block:: python
         
         wb.plot_tracks(data=smoothed,
-                       events=f_events,  
+                       events=tracked,  
                        proj=ccrs.PlateCarree(), # optional
                        size=(12,8), # optional
                        min_path=0, # optional
-                       plot_events=False, # optional
+                       plot_events=True, # optional
                        labels=True, # optional
                        title="") # optional
                        
