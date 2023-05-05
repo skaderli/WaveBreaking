@@ -224,6 +224,8 @@ def calculate_overturnings(
         return gpd.GeoDataFrame()
     else:
         overturnings = pd.concat(overturnings).reset_index(drop=True)
-        overturnings.insert(6, "orientation", gdf.orientation)
+        ot_gdf = gpd.GeoDataFrame(pd.concat([overturnings.iloc[:, :-1], 
+                                             gdf.orientation], axis = 1), 
+                                  geometry=overturnings.geometry)
 
-        return overturnings
+        return ot_gdf
