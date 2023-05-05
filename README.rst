@@ -81,7 +81,7 @@ Or you can clone the GitHub repository first and then install WaveBreaking local
         git clone https://github.com/skaderli/WaveBreaking.git
         cd /path/to/local/WaveBreaking
 
-Second, set up the conda environment and install the necessary dependencies:
+Second, set up the conda environment and install the necessary dependencies (this may take some time):
 
 ..  code-block:: 
 
