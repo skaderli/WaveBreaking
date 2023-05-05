@@ -191,7 +191,6 @@ def calculate_overturnings(
         orientation = pd.DataFrame(
             {"orientation": [check_orientation(row) for index, row in df_ot.iterrows()]}
         )
-
         # define Polygons
         dates = pd.DataFrame({"date": [series.date for i in range(0, len(df_ot))]})
         levels = pd.DataFrame({"level": [series.level for i in range(0, len(df_ot))]})

@@ -76,7 +76,7 @@ def calculate_contours(
 
     # select variable and time step for the contour calculation
     ds = data.sel({kwargs["time_name"]: kwargs["step"]})
-    date = pd.to_datetime(ds[kwargs["time_name"]].values).strftime("%Y-%m-%dT%H")
+    date = ds[kwargs["time_name"]].values
 
     # expand field for periodicity
     ds = xr.concat(

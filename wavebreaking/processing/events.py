@@ -137,7 +137,8 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
         events : geopandas.GeoDataFrame
             GeoDataFrame with the date and coordinates of each identified event
         time_range: int or float
-            Time range in hours for combining spatially overlapping events
+            Time range for combining spatially overlapping events. The units of
+            time_range is hours if the type of the time dimension is np.datetime64.
         method : {"by_overlapping", "by_radius"}, optional
             Method for temporally tracking the events:
             * "by_overlapping": Events receive the same label if they spatially
@@ -153,19 +154,21 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
             GeoDataFrame with label column showing the temporal coherence
     """
 
-    # resample event dates
-    dates = [np.datetime64(date) for date in events.date]
-
     # reset index of events
     events = events.reset_index(drop=True)
 
     combine = []
     for date in tqdm(
-        dates, desc="Tracking events", total=len(dates), leave=True, position=0
+        events.date, desc="Tracking events", total=len(events), leave=True, position=0
     ):
         # select events that are in range of time_range
-        dates_dif = (dates - date).astype(int)
-        check = (dates_dif >= 0) & (dates_dif <= time_range)
+        if events.date.dtype == np.dtype("datetime64[ns]"):
+            dates = pd.Series([pd.Timestamp(item) for item in events.date])
+            diffs = ((dates - date).dt.total_seconds() / 3600).abs()
+        else:
+            diffs = abs(events.date - date)
+
+        check = (diffs >= 0) & (diffs <= time_range)
         index_combinations = itertools.combinations(events[check].index, r=2)
 
         if method == "by_radius":

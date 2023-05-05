@@ -237,25 +237,25 @@ def plot_step(
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
 
     # select data
-    if type(step) is str or type(step) is np.datetime64:
-        ds = data.sel({kwargs["time_name"]: step}).to_dataset()
-        ds["flag"] = flag_data.sel({kwargs["time_name"]: step})
-        date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime(
-            "%Y-%m-%dT%H"
-        )
+    if type(step) is str or type(step) == np.dtype("datetime64[ns]"):
+        try:
+            ds = data.sel({kwargs["time_name"]: step}).to_dataset()
+            ds["flag"] = flag_data.sel({kwargs["time_name"]: step})
+        except KeyError:
+            errmsg = "step {} not supported or out of range!".format(step)
+            raise KeyError(errmsg)
     else:
         try:
             ds = data.isel({kwargs["time_name"]: step}).to_dataset()
             ds["flag"] = flag_data.isel({kwargs["time_name"]: step})
-            date = pd.to_datetime(str(ds[kwargs["time_name"]].values)).strftime(
-                "%Y-%m-%dT%H"
-            )
-        except ValueError:
-            print(
-                "{} not supported as step! Step must be an index/coordinate of your data!".format(
-                    step
-                )
-            )
+        except KeyError:
+            errmsg = "step {} not supported or out of range!".format(step)
+            raise KeyError(errmsg)
+
+    # get date
+    date = ds[kwargs["time_name"]].values
+    if date.dtype == np.dtype("datetime64[ns]"):
+        date = pd.Timestamp(date).strftime("%Y-%m-%dT%H")
 
     # get variable name
     variable = data.name
