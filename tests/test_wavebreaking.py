@@ -22,8 +22,6 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Polygon
 import tqdm
-import functools
-import logging
 
 
 # import and silent tqdm progress bar
@@ -246,7 +244,16 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(overturnings), 9)
         self.assertEqual(
             overturnings.columns.to_list(),
-            ["date", "level", "com", "mean_var", "area", "intensity", "orientation", "geometry"],
+            [
+                "date",
+                "level",
+                "com",
+                "mean_var",
+                "area",
+                "intensity",
+                "orientation",
+                "geometry",
+            ],
         )
 
     def test_cutoff_index(self):
