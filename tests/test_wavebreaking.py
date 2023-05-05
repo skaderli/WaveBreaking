@@ -138,7 +138,7 @@ class test_spatial(unittest.TestCase):
 
 class test_events(unittest.TestCase):
     def test_to_xarray(self):
-        date = "1959-06-03T12"
+        date = np.datetime64("1959-06-03T12")
         name = "test_flag"
         events = gpd.GeoDataFrame(
             pd.DataFrame([{"date": date}]),
@@ -152,7 +152,7 @@ class test_events(unittest.TestCase):
         self.assertEqual(flag_data.name, name)
 
     def test_track_events(self):
-        date = "1959-06-03T12"
+        date = np.datetime64("1959-06-03T12")
         events = gpd.GeoDataFrame(
             pd.DataFrame([{"date": date}]),
             geometry=[Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])],
