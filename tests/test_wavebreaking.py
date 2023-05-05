@@ -57,24 +57,6 @@ from wavebreaking.indices.cutoff_index import calculate_cutoffs
 data = xr.open_dataset("tests/data/demo_data.nc").isel(time=slice(0, 3))
 
 
-def disablelogging(func):
-    """
-    decorator to disable logging for testing
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        logger = logging.getLogger("wavebreaking")
-        previousloglevel = logger.getEffectiveLevel()
-        logger.setLevel(level=logging.WARNING)
-        try:
-            return func(*args, **kwargs)
-        finally:
-            logger.setLevel(previousloglevel)
-
-    return wrapper
-
-
 class test_data_utils(unittest.TestCase):
     def test_check_argument_types(self):
         @check_argument_types(["data"], [xr.DataArray])
@@ -185,7 +167,6 @@ class test_events(unittest.TestCase):
 
 
 class test_indices(unittest.TestCase):
-    @disablelogging
     def test_contour_index(self):
         contours_coords = calculate_contours(
             data=data.PV,
@@ -217,7 +198,6 @@ class test_indices(unittest.TestCase):
         self.assertEqual(contours_coords.columns.to_list(), cols)
         self.assertEqual(contours_index.columns.to_list(), cols)
 
-    @disablelogging
     def test_decorator_contour_calculation(self):
         @decorator_contour_calculation
         def to_be_decorated(*args, **kwargs):
@@ -235,7 +215,6 @@ class test_indices(unittest.TestCase):
 
         to_be_decorated(data.PV, contour_levels=2)
 
-    @disablelogging
     def test_streamer_index(self):
         streamers = calculate_streamers(
             data=data.PV,
@@ -253,7 +232,6 @@ class test_indices(unittest.TestCase):
             ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
         )
 
-    @disablelogging
     def test_overturning_index(self):
         overturnings = calculate_overturnings(
             data=data.PV,
@@ -268,10 +246,9 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(overturnings), 9)
         self.assertEqual(
             overturnings.columns.to_list(),
-            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "area", "intensity", "orientation", "geometry"],
         )
 
-    @disablelogging
     def test_cutoff_index(self):
         cutoffs = calculate_cutoffs(
             data=data.PV,
@@ -289,6 +266,6 @@ class test_indices(unittest.TestCase):
         )
 
 
-# Execute Test
+# execute Test
 if __name__ == "__main__":
     unittest.main()
