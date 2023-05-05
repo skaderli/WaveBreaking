@@ -74,10 +74,10 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
 
         def polygon_to_grid(poly):
             # get interior points and border
-            mask_contain = shapely.vectorized.contains(poly, x, y)
-            mask_touch = shapely.vectorized.touches(poly, x, y)
+            buffer = ((kwargs["dlon"] + kwargs["dlat"]) / 2) / 2
+            mask_contain = shapely.vectorized.contains(poly.buffer(buffer), x, y)
 
-            return np.c_[x, y][mask_contain | mask_touch]
+            return np.c_[x, y][mask_contain]
 
         # get coords DataFrame
         if type(geom) == LineString:
@@ -145,12 +145,12 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
             * "by_radius": Events receive the same label if their centre of mass
                 is inside the distance "radius"
         radius : int or float, optional
-            Radius for tracking events with the "by_radius" method
+            Radius in km for tracking events with the "by_radius" method
 
     Returns
     -------
         events: geopandas.GeoDataFrame
-            GeoDataFrame with label column showing the temporal connections
+            GeoDataFrame with label column showing the temporal coherence
     """
 
     # resample event dates
