@@ -20,8 +20,7 @@ requirements = ['numpy',
                 'shapely',
                 'scikit-learn',
                 'matplotlib',
-                'cartopy',
-                'seaborn']
+                'cartopy']
 
 test_requirements = ['pytest>=3', ]
 
