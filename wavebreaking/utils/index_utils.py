@@ -51,12 +51,12 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
     # get grid points
     points = polygon_to_grid_points(series.geometry)
 
-    # select date abd coordinates
+    # select date and coordinates
     da = data.sel({kwargs["time_name"]: series.date}).values
     lons = data[kwargs["lon_name"]].values
     lats = data[kwargs["lat_name"]].values
 
-    # Calculate cell weight following the definition by Daniel Steinfeld
+    # Calculate cell weights following the definition by Daniel Steinfeld
     weight_lat = np.cos(data[kwargs["lat_name"]].values * np.pi / 180)
     weight = (
         np.ones((kwargs["nlat"], kwargs["nlon"]))

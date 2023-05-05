@@ -186,7 +186,7 @@ def decorator_contour_calculation(func):
 
     @functools.wraps(func)
     def wrapper(data, contour_levels, periodic_add=120, *args, **kwargs):
-        # pass contours to the wrapped function as a key=value argument
+        # pass contours to the decorated function as a key=value argument
         kwargs["contours"] = calculate_contours(
             data, contour_levels, periodic_add, original_coordinates=False
         )

@@ -176,10 +176,10 @@ def calculate_overturnings(
 
         # check if event is cyclonic by orientation
         def check_orientation(df):
-            lat_west = data.lat[
+            lat_west = data[kwargs["lat_name"]][
                 contour_index[contour_index.x.eq(df.min_lon)].y.values[0]
             ].values
-            lat_east = data.lat[
+            lat_east = data[kwargs["lat_name"]][
                 contour_index[contour_index.x.eq(df.max_lon)].y.values[-1]
             ].values
 

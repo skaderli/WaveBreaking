@@ -7,7 +7,7 @@ The tool was developed during my master thesis at the University of Bern.
 Link to thesis: https://occrdata.unibe.ch/students/theses/msc/406.pdf
 
 ---
-Init processing
+Initiate processing
 """
 
 __author__ = "Severin Kaderli"
