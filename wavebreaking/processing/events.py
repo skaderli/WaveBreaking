@@ -141,10 +141,10 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
             time_range is hours if the type of the time dimension is np.datetime64.
         method : {"by_overlapping", "by_radius"}, optional
             Method for temporally tracking the events:
-            * "by_overlapping": Events receive the same label if they spatially
-                overlap at step t and t + time_range.
-            * "by_radius": Events receive the same label if their centre of mass
-                is inside the distance "radius"
+                * "by_overlapping": Events receive the same label if they spatially
+                    overlap at step t and t + time_range.
+                * "by_radius": Events receive the same label if their centre of mass
+                    is inside the distance "radius"
         radius : int or float, optional
             Radius in km for tracking events with the "by_radius" method
 
