@@ -19,7 +19,7 @@ __email__ = "severin.kaderli@unibe.ch"
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, box
 import shapely.vectorized
 from tqdm import tqdm
 import functools
@@ -38,7 +38,7 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
         """
         # get grid points
         x, y = np.meshgrid(
-            np.arange(0, kwargs["nlon"] + periodic_add),
+            np.arange(0, kwargs["nlon"] + int(periodic_add / kwargs["dlon"])),
             np.arange(0, kwargs["nlat"]),
         )
         x, y = x.flatten(), y.flatten()
@@ -72,28 +72,49 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
     com = [(lons[int(com.x) % kwargs["nlon"]], lats[int(com.y)])]
 
     # transform coordinates and define polygons
-    exterior = np.asarray(series.geometry.exterior.coords.xy).T.astype("int")
+    original_grid = box(0, 0, kwargs["nlon"] - 0.01, kwargs["nlat"])
+    additional_grid = box(
+        kwargs["nlon"],
+        0,
+        kwargs["nlon"] + int(periodic_add / kwargs["dlon"]),
+        kwargs["nlat"],
+    )
 
-    if any(exterior[:, 0] >= kwargs["nlon"]):
-        ext_east = exterior[exterior[:, 0] < kwargs["nlon"]]
-        ext_west = exterior[exterior[:, 0] >= kwargs["nlon"]]
+    def transform_coords(polygon):
+        """
+        Transform coordinates to original grid
+        """
+        coords = np.asarray(polygon.exterior.coords.xy).T.astype("int")
+        coords = np.c_[coords[:, 0] % kwargs["nlon"], coords[:, 1]]
+        return Polygon(np.c_[lons[coords[:, 0]], lats[coords[:, 1]]])
 
-        if len(ext_east) < 4:
-            poly = Polygon(
-                np.c_[lons[ext_west[:, 0] % kwargs["nlon"]], lats[ext_west[:, 1]]]
-            )
-        elif len(ext_west) < 4:
-            poly = Polygon(np.c_[lons[ext_east[:, 0]], lats[ext_east[:, 1]]])
+    if series.geometry.intersects(additional_grid):
+        geoms_org = series.geometry.intersection(original_grid)
+        geoms_add = series.geometry.intersection(additional_grid)
+
+        def get_polygons(geoms):
+            """
+            Get polygons from intersections
+            """
+            if type(geoms) == Polygon:
+                return [transform_coords(geoms)]
+            elif type(geoms) == GeometryCollection:
+                return [
+                    transform_coords(geom)
+                    for geom in geoms.geoms
+                    if type(geom) == Polygon
+                ]
+            else:
+                return []
+
+        polys = get_polygons(geoms_org) + get_polygons(geoms_add)
+
+        if len(polys) > 1:
+            poly = MultiPolygon(polys)
         else:
-            poly_east = Polygon(np.c_[lons[ext_east[:, 0]], lats[ext_east[:, 1]]])
-            poly_west = Polygon(
-                np.c_[lons[ext_west[:, 0] % kwargs["nlon"]], lats[ext_west[:, 1]]]
-            )
-
-            poly = MultiPolygon([poly_east, poly_west])
-
+            poly = polys[0]
     else:
-        poly = Polygon(np.c_[lons[exterior[:, 0]], lats[exterior[:, 1]]])
+        poly = transform_coords(series.geometry)
 
     # store properties in dict
     prop_dict = {
