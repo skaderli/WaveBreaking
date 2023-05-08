@@ -122,6 +122,7 @@ class test_index_utils(unittest.TestCase):
             nlat=179,
             nlon=360,
             lon_name="lon",
+            dlon=1,
         )
 
         self.assertIs(type(df_check), gpd.GeoDataFrame)
