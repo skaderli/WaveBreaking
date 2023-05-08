@@ -27,7 +27,7 @@ test_requirements = ['pytest>=3', ]
 setup(
     author="Severin Kaderli",
     author_email='severin.kaderli@unibe.ch',
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
