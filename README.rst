@@ -17,7 +17,7 @@
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
 ====================================================================================
 
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/readme.gif
+.. image:: https://raw.githubusercontent.com/skaderli/WaveBreaking/main/docs/figures/readme.gif
     :alt: readme gif
 
 .. start_intro
@@ -265,7 +265,7 @@ To analyze a specific large scale situation, the RWB events on a single time ste
 
 .. end_tutorial_part1
 
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_step.png
+.. image:: https://raw.githubusercontent.com/skaderli/WaveBreaking/main/docs/figures/plot_step.png
     :alt: plot step 
     
 .. start_tutorial_part2  
@@ -287,7 +287,7 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 
 .. end_tutorial_part2
 
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_climatology.png
+.. image:: https://raw.githubusercontent.com/skaderli/WaveBreaking/main/docs/figures/plot_climatology.png
     :alt: plot climatology 
 
 .. start_tutorial_part3
@@ -324,7 +324,7 @@ The result can be visualized by plotting the paths of the tracked events:
                   
 .. end_tutorial_part3
  
-.. image:: https://github.com/skaderli/WaveBreaking/blob/main/docs/figures/plot_tracks.png
+.. image:: https://raw.githubusercontent.com/skaderli/WaveBreaking/main/docs/figures/plot_tracks.png
     :alt: plot tracks
 
 Credits
