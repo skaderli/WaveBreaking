@@ -69,7 +69,7 @@ def calculate_contours(
                 * "date": date of the contour line
                 * "level": level of the contour line
                 * "closed": True if contour line is closed
-                * "exp_lon": expansion of the contours in the longitudinal direction
+                * "exp_lon": expansion in degrees of the contours in the longitudinal direction
                 * "mean_lat": mean latitude of the contours
                 * "geometry": LineString object with the contour coordinates in the format (x,y)
     """
@@ -80,7 +80,10 @@ def calculate_contours(
 
     # expand field for periodicity
     ds = xr.concat(
-        [ds, ds.isel({kwargs["lon_name"]: slice(0, periodic_add)})],
+        [
+            ds,
+            ds.isel({kwargs["lon_name"]: slice(0, int(periodic_add / kwargs["dlon"]))}),
+        ],
         dim=kwargs["lon_name"],
     )
 
@@ -136,7 +139,7 @@ def calculate_contours(
         Calculate different characteristics of the contour line.
         """
 
-        exp_lon = [len(set(item[:, 0])) for item in list_of_arrays]
+        exp_lon = [len(set(item[:, 0])) * kwargs["dlon"] for item in list_of_arrays]
         mean_lat = [np.round(item[:, 1].mean(), 2) for item in list_of_arrays]
         geo_mp = [LineString(coords) for coords in list_of_arrays]
 

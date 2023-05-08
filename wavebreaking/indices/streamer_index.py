@@ -258,7 +258,10 @@ def calculate_streamers(
         )
 
     # concat GeoDataFrames
-    gdf = pd.concat(streamers).reset_index(drop=True)
+    if len(streamers) == 0:
+        return gpd.GeoDataFrame()
+    else:
+        gdf = pd.concat(streamers).reset_index(drop=True)
 
     # calculate properties and transform coordinates
     streamers = [
