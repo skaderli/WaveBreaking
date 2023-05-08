@@ -59,7 +59,7 @@ To install WaveBreaking, run this command in your terminal:
  
 ..  code-block:: 
 
-        pip install wavebreaking ### NOT AVAILABLE YET
+        pip install wavebreaking
 
 This is the preferred method to install WaveBreaking, as it will always install the most recent stable release. 
 Your virtual environment is automatically checked for the necessary dependencies. 
