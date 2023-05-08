@@ -13,9 +13,9 @@
    :target: https://www.codefactor.io/repository/github/skaderli/wavebreaking
    :alt: CodeFactor
 
-============
+====================================================================================
 WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking
-============
+====================================================================================
 
 .. image:: docs/figures/readme.gif
     :alt: readme gif
@@ -51,10 +51,10 @@ Parts of the data setup functions and of the tracking function are based on the 
 .. start_installation
 
 Installation
-----------
+-------------
 
 Stable release
-~~~~~~~~
+~~~~~~~~~~~~~~~
 To install WaveBreaking, run this command in your terminal:
  
 ..  code-block:: 
@@ -66,7 +66,7 @@ Your virtual environment is automatically checked for the necessary dependencies
 After the installation, you can start calculating RWB events by following the tutorial below.
 
 From sources
-~~~~~~~~
+~~~~~~~~~~~~~
 
 The sources for WaveBreaking can be downloaded in two different ways. You can either install WaveBreaking directly from the GitHub repository:
 
@@ -106,7 +106,7 @@ To check if the installation was successful, perform some tests:
 .. start_tutorial_part1
 
 Tutorial
---------
+---------
 
 This tutorial shows how to calculate RWB events step by step. After successfully installing WaveBreaking, the module needs to be imported. Make sure that the Python kernel with the correct virtual environment (where WaveBreaking is installed) is running.
 
@@ -117,7 +117,7 @@ This tutorial shows how to calculate RWB events step by step. After successfully
 More information about the functions presented below can be found in the `documentation <https://wavebreaking.readthedocs.io/en/latest/modules.html>`_.
    
 Data pre-processing:
-~~~~~~~~~~       
+~~~~~~~~~~~~~~~~~~~~~   
 
 Optionally, the variable intended for the RWB calculations can be smoothed. The smoothing routine applies by default a 5-point smoothing (not diagonally) with a double-weighted center and an adjustable number of smoothing passes. Since the smoothing is based on the scipy.ndimage.convolve function, array-like weights and the mode for handling boundary values can be passed as an argument. This routine returns a xarray.DataArray with the variable "smooth_<variable>". 
 
@@ -144,7 +144,7 @@ The wavebreaking module calculates the intensity for each identified event, if a
         
                                    
 Contour calculation:
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
        
 All RWB indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for processing data of both hemispheres at the same time (e.g., contour levels -2 and 2). The contour calculation is included in the RWB index functions and doesn't need to be performed beforehand. 
 
@@ -160,7 +160,7 @@ If the input field is periodic, the parameter "periodic_add" can be used to exte
         
 
 Index calculation:
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 All three RWB indices perform the contour calculation before identifying the RWB events. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. If the intensity is provided (momentum flux, see data pre-processing), it is calculated for each event. All index functions create a geopandas.GeoDataFrame with a geometry column and some properties for each event. 
 
@@ -194,7 +194,7 @@ All three RWB indices perform the contour calculation before identifying the RWB
                                        periodic_add=120) # optional
                                        
 Event classification:
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 The event classification is based on selecting the events of interest from the geopandas.GeoDataFrame provided by the index calculation functions. 
 
@@ -224,7 +224,7 @@ In addition, a subset of events with certain characteristics can be selected, e.
 
 
 Transform to DataArray:
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 To calculate and visualize the occurrence of RWB events, it comes in handy to transform the coordinates of the events into a xarray.DataArray. The "to_xarray" function flags every grid cell where an event is present with the value 1. Before the transformation, it is suggested to classify the events first and only use for example stratospheric events. 
 
@@ -239,7 +239,7 @@ To calculate and visualize the occurrence of RWB events, it comes in handy to tr
 
         
 Visualization: 
-~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 WaveBreaking provides two options to do a first visual analysis of the output. Both options are based on the xarray.DataArray with the flagged grid cells from the "to_xarray" function. 
 
@@ -293,7 +293,7 @@ The analyze Rossby wave breaking from a climatological perspective, the occurren
 .. start_tutorial_part3
     
 Event tracking:
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 Last but not least, WaveBreaking provides a routine to track events over time. Beside the time range of the temporal tracking, two methods for defining the spatial coherence are available. Events receive the same label if they either spatially overlap (method "by_overlapping") or if the centre of mass lies in a certain radius (method "by_radius"). Again, it is suggested to classify the events first and only use for example stratospheric events. This routine adds a column "label" to the events geopandas.GeoDataFrame.
 
@@ -328,7 +328,7 @@ The result can be visualized by plotting the paths of the tracked events:
     :alt: plot tracks
 
 Credits
--------
+---------
 
 * The installation guide is to some extend based on the `ConTrack - Contour Tracking <https://github.com/steidani/ConTrack>`_ tool developed by `Daniel Steinfeld <https://github.com/steidani>`_. 
 
