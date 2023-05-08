@@ -174,12 +174,17 @@ def get_dimension_attributes(arg_name):
             for res, name in zip(resolutions, names[1:]):
                 if res not in kwargs:
                     kwargs[res] = get_spatial_resolution(data, kwargs[name])
-                    
+
             if len(data.dims) > 3:
-                err_dims = [dim for dim in data.dims if dim not in [kwargs[name] for name in names]]
-                errmsg = "Unexpected dimension(s): {}. Select dimensions first.".format(err_dims)
+                err_dims = [
+                    dim
+                    for dim in data.dims
+                    if dim not in [kwargs[name] for name in names]
+                ]
+                errmsg = "Unexpected dimension(s): {}. Select dimensions first.".format(
+                    err_dims
+                )
                 raise ValueError(errmsg)
-                
 
             return func(*args, **kwargs)
 

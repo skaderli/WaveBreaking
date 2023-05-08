@@ -60,7 +60,7 @@ def plot_clim(
         flag_data : xarray.DataArray
             data containing the locations of the events flagged with the value 1
         seasons : list or array, optional
-            months of the seasons for occurrence frequency calculation (e.g. [11,12,1])
+            months of the seasons for occurrence frequency calculation (e.g. [12, 1, 2])
         proj : cartopy.crs, optional
             cartopy projection object
         size : tuple of integers, optional
