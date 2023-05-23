@@ -5,6 +5,9 @@
         :target: https://github.com/skaderli/wavebreaking/blob/master/LICENSE
         :alt: License
         
+.. image:: https://zenodo.org/badge/431515314.svg
+   :target: https://zenodo.org/badge/latestdoi/431515314
+        
 .. image:: https://readthedocs.org/projects/wavebreaking/badge/?version=latest
         :target: https://wavebreaking.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
@@ -42,9 +45,14 @@ Parts of the data setup functions and of the tracking function are based on the 
 
 **Important information:**
 
-* The package is still under construction and therefore, major errors can occur. 
 * Free software: MIT license
-* Further documentation about the implemented methods can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_
+* Further documentation about the implemented methods can be found in my `master thesis <https://occrdata.unibe.ch/students/theses/msc/406.pdf>`_.
+
+**Referencing:**
+
+* Please cite WaveBreaking in your publication: Kaderli, S., 2023. WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking. https://doi.org/10.5281/zenodo.7961800
+* If you are using the Streamer Index, please cite `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_).
+* If you are using the Overturning INdex, please cite `Barnes and Hartmann (2012)`_.
 
 .. end_intro
 
