@@ -19,7 +19,9 @@ __email__ = "severin.kaderli@unibe.ch"
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, box
+from shapely.geometry import Polygon, MultiPolygon
+from shapely.ops import linemerge, unary_union, polygonize
+from shapely.validation import make_valid
 import shapely.vectorized
 from tqdm import tqdm
 import functools
@@ -71,15 +73,7 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
     com = np.sum(points.multiply(areas, axis=0), axis=0) / area
     com = [(lons[int(com.x) % kwargs["nlon"]], lats[int(com.y)])]
 
-    # transform coordinates and define polygons
-    original_grid = box(0, 0, kwargs["nlon"] - 0.01, kwargs["nlat"])
-    additional_grid = box(
-        kwargs["nlon"],
-        0,
-        kwargs["nlon"] + int(periodic_add / kwargs["dlon"]),
-        kwargs["nlat"],
-    )
-
+    # transform coordinates
     def transform_coords(polygon):
         """
         Transform coordinates to original grid
@@ -88,31 +82,25 @@ def properties_per_event(data, series, intensity, periodic_add, *args, **kwargs)
         coords = np.c_[coords[:, 0] % kwargs["nlon"], coords[:, 1]]
         return Polygon(np.c_[lons[coords[:, 0]], lats[coords[:, 1]]])
 
-    if series.geometry.intersects(additional_grid):
-        geoms_org = series.geometry.intersection(original_grid)
-        geoms_add = series.geometry.intersection(additional_grid)
+    # check if polygon needs to be split at last meridian
+    if any(points.x >= kwargs["nlon"]):
+        # split polygons at last meridian
+        p00, p01 = [kwargs["nlon"] - 1, kwargs["nlat"]], [kwargs["nlon"] - 1, 0]
+        p10, p11 = [kwargs["nlon"], 0], [kwargs["nlon"], kwargs["nlat"]]
+        meridian = Polygon([p00, p01, p10, p11])
+        merged = linemerge([series.geometry.boundary, meridian.boundary])
+        borders = unary_union(merged)
+        polygons = [
+            p
+            for p in polygonize(borders)
+            if not meridian.contains(p) and make_valid(series.geometry).contains(p)
+        ]
 
-        def get_polygons(geoms):
-            """
-            Get polygons from intersections
-            """
-            if type(geoms) == Polygon:
-                return [transform_coords(geoms)]
-            elif type(geoms) == GeometryCollection:
-                return [
-                    transform_coords(geom)
-                    for geom in geoms.geoms
-                    if type(geom) == Polygon
-                ]
-            else:
-                return []
-
-        polys = get_polygons(geoms_org) + get_polygons(geoms_add)
-
-        if len(polys) > 1:
-            poly = MultiPolygon(polys)
+        if len(polygons) == 0:
+            return gpd.GeoDataFrame()
         else:
-            poly = polys[0]
+            polys = [transform_coords(p) for p in polygons]
+            poly = MultiPolygon(polys)
     else:
         poly = transform_coords(series.geometry)
 
