@@ -32,12 +32,13 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 @get_dimension_attributes("data")
 @decorator_contour_calculation
 def calculate_cutoffs(
-    data, contour_level, min_exp=5, intensity=None, periodic_add=120, *args, **kwargs
+    data, contour_level, contours=None, min_exp=5, intensity=None, periodic_add=120, *args, **kwargs
 ):
     """
     Identify cutoff structures.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
     and resolution ("dlon", "dlat") can be passed as key=value argument.
+    Before the index calculation, the contour lines are calculated if not provided.
 
     Parameters
     ----------
@@ -45,6 +46,9 @@ def calculate_cutoffs(
             data for the contour and cutoff calculation
         contour_levels : array_like
             levels for contour calculation
+        contours : geopandas.GeoDataFrame, optional
+            contours calculated with wavebreaking.calculate_contours(..., 
+            original_coordinates=False)
         min_exp : int or float, optional
             Minimal longitudinal expansion of a cutoff event
         intensity : xarray.DataArray, optional
@@ -68,7 +72,8 @@ def calculate_cutoffs(
     """
 
     # filter contours from contour iteration
-    contours = kwargs["contours"]
+    if contours is None:
+        contours = kwargs["contours"]
     contours = contours[
         (contours.exp_lon < contours.exp_lon.max())
         & (contours.exp_lon >= min_exp)

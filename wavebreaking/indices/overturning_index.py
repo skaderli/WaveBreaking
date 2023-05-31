@@ -39,6 +39,7 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 def calculate_overturnings(
     data,
     contour_levels,
+    contours=None,
     range_group=5,
     min_exp=5,
     intensity=None,
@@ -55,6 +56,7 @@ def calculate_overturnings(
     enclosing all overturning contour points.
     Dimension names ("time_name", "lon_name", "lat_name"), size ("ntime", "nlon", "nlat")
     and resolution ("dlon", "dlat") can be passed as key=value argument.
+    Before the index calculation, the contour lines are calculated if not provided.
 
     Parameters
     ----------
@@ -62,6 +64,9 @@ def calculate_overturnings(
             data for the contour and overturning calculation
         contour_levels : array_like
             levels for contour calculation
+        contours : geopandas.GeoDataFrame, optional
+            contours calculated with wavebreaking.calculate_contours(..., 
+            original_coordinates=False)
         range_group : int or float, optional
             Maximal degrees in the longitudinal direction in which two overturning are grouped
         min_exp : int or float, optional
@@ -88,7 +93,8 @@ def calculate_overturnings(
     """
 
     # filter contours from contour iteration
-    contours = kwargs["contours"]
+    if contours is None:
+        contours = kwargs["contours"]
     contours = contours[contours.exp_lon == contours.exp_lon.max()].reset_index(
         drop=True
     )
