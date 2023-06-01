@@ -154,7 +154,7 @@ The wavebreaking module calculates the intensity for each identified event, if a
 Contour calculation:
 ~~~~~~~~~~~~~~~~~~~~
        
-All RWB indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for processing data of both hemispheres at the same time (e.g., contour levels -2 and 2). The contour calculation is included in the RWB index functions and doesn't need to be performed beforehand. 
+All RWB indices are based on a contour line representing the dynamical tropopause. The "calculate_contours()" function calculates the dynamical tropopause on the desired contour levels (commonly the 2 PVU level for Potential Vorticity). The function supports several contour levels at a time which allows for processing data of both hemispheres at the same time (e.g., contour levels -2 and 2). The contour calculation is also included in the RWB index functions and doesn't need to be performed beforehand. However, you can also pass the contours directly to the index functions. This is especially useful if you want to perform the calculation of several indices at once. 
 
 If the input field is periodic, the parameter "periodic_add" can be used to extend the field in the longitudinal direction (default 120 degrees) to correctly extract the contour at the date border. With "original_coordinates = False", array indices are returned (used for the index calculations) instead of original coordinates. The routine returns a geopandas.GeoDataFrame with a geometry column and some properties for each contour. 
 
@@ -170,13 +170,14 @@ If the input field is periodic, the parameter "periodic_add" can be used to exte
 Index calculation:
 ~~~~~~~~~~~~~~~~~~~
 
-All three RWB indices perform the contour calculation before identifying the RWB events. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. If the intensity is provided (momentum flux, see data pre-processing), it is calculated for each event. All index functions create a geopandas.GeoDataFrame with a geometry column and some properties for each event. 
+All three RWB indices perform the contour calculation before identifying the RWB events. If you pass the separately calculated contours, the contour calcultion is skipped. For the streamer index, the default parameters are taken from `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_) and for the overturning index from `Barnes and Hartmann (2012)`_. If the intensity is provided (momentum flux, see data pre-processing), it is calculated for each event. All index functions create a geopandas.GeoDataFrame with a geometry column and some properties for each event. 
 
 .. code-block:: python
 
         # calculate streamers
         streamers = wb.calculate_streamers(data=smoothed, 
                                            contour_levels=[-2, 2], 
+                                           contours=contours, #optional
                                            geo_dis=800, # optional
                                            cont_dis=1200, # optional
                                            intensity=mflux, # optional
@@ -186,7 +187,8 @@ All three RWB indices perform the contour calculation before identifying the RWB
 
         # calculate overturnings
         overturnings = wb.calculate_overturnings(data=smoothed, 
-                                                 contour_levels=[-2, 2], 
+                                                 contour_levels=[-2, 2],
+                                                 contours=contours, #optional
                                                  range_group=5, # optional
                                                  min_exp=5, # optional
                                                  intensity=mflux, # optional
@@ -196,7 +198,8 @@ All three RWB indices perform the contour calculation before identifying the RWB
  
         # calculate cutoffs
         cutoffs = wb.calculate_cutoffs(data=smoothed, 
-                                       contour_levels=[-2, 2], 
+                                       contour_levels=[-2, 2],
+                                       contours=contours, #optional
                                        min_exp=5, # optional
                                        intensity=mflux, # optional
                                        periodic_add=120) # optional
@@ -258,9 +261,9 @@ To analyze a specific large scale situation, the RWB events on a single time ste
         # import cartopy for projection
         import cartopy.crs as ccrs
         
-        wb.plot_step(flag_data=flag_array, 
-                     data=smoothed, 
+        wb.plot_step(flag_data=flag_array,
                      step="1959-06-05T06", #index or date
+                     data=smoothed, # optional
                      contour_level=[-2, 2], # optional
                      proj=ccrs.PlateCarree(), # optional
                      size=(12,8), # optional
