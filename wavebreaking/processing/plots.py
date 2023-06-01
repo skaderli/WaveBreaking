@@ -40,7 +40,7 @@ def plot_clim(
     flag_data,
     seasons=None,
     proj=None,
-    size=(12, 8),
+    size=None,
     smooth_passes=5,
     periodic=True,
     labels=True,
@@ -84,12 +84,12 @@ def plot_clim(
             Climatological plot of the occurrence frequencies.
     """
 
-    # define cartopy projection
+    # define data crs
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
-
+    
     # initialize figure
+    proj = proj if proj is not None else data_crs
+    size = size if size is not None else (12, 8)
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
 
     # calculate occurrence frequencies, if provided for seasons
@@ -172,15 +172,15 @@ def plot_clim(
     ax.set_title(title, fontweight="bold", fontsize=20)
 
 
-@check_argument_types(["flag_data", "data"], [xr.DataArray, xr.DataArray])
+@check_argument_types(["flag_data"], [xr.DataArray])
 @get_dimension_attributes("flag_data")
 def plot_step(
     flag_data,
-    data,
     step,
-    contour_levels,
+    data=None,
+    contour_levels=None,
     proj=None,
-    size=(12, 8),
+    size=None,
     periodic=True,
     labels=True,
     levels=None,
@@ -199,10 +199,10 @@ def plot_step(
     ----------
         flag_data : xarray.DataArray
             Data containing the locations of the events flagged with the value 1
-        data : xarray.DataArray
-            Data that has been used to calculate the contours and the indices
         step : int or string
             index or name of a time step in the xarray.Dataset
+        data : xarray.DataArray
+            Data that has been used to calculate the contours and the indices
         contour_level : array_like
             contour levels that are shown in the plot
         proj : cartopy.crs, optional
@@ -228,37 +228,37 @@ def plot_step(
             Plot of one time step.
     """
 
-    # define cartopy projection
+    # define data crs
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
-
+    
     # initialize figure
+    proj = proj if proj is not None else data_crs
+    size = size if size is not None else (12, 8)
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
 
     # select data
     if type(step) is str or type(step) == np.dtype("datetime64[ns]"):
         try:
-            ds = data.sel({kwargs["time_name"]: step}).to_dataset()
-            ds["flag"] = flag_data.sel({kwargs["time_name"]: step})
+            ds = flag_data.sel({kwargs["time_name"]: step}).to_dataset()
         except KeyError:
             errmsg = "step {} not supported or out of range!".format(step)
             raise KeyError(errmsg)
     else:
         try:
-            ds = data.isel({kwargs["time_name"]: step}).to_dataset()
-            ds["flag"] = flag_data.isel({kwargs["time_name"]: step})
+            ds = flag_data.isel({kwargs["time_name"]: step}).to_dataset()
         except KeyError:
             errmsg = "step {} not supported or out of range!".format(step)
             raise KeyError(errmsg)
+            
 
     # get date
     date = ds[kwargs["time_name"]].values
     if date.dtype == np.dtype("datetime64[ns]"):
         date = pd.Timestamp(date).strftime("%Y-%m-%dT%H")
-
-    # get variable name
-    variable = data.name
+        
+    # add data if provided
+    if data is not None:
+        ds[data.name] = data.sel({kwargs["time_name"]: date})
 
     # add longitude to ensure that there is no gap in a periodic field
     if periodic is True:
@@ -272,33 +272,54 @@ def plot_step(
             dim=kwargs["lon_name"],
         )
 
-    # define levels
-    if levels is None:
-        levels = plot_utils.get_levels(ds[variable].min(), ds[variable].max())
+    # plot variable field and contour lines
+    if data is not None:
+        if levels is None:
+            levels = plot_utils.get_levels(ds[data.name].min(),
+                                           ds[data.name].max())
+        
+        p = ds[data.name].plot.contourf(
+            ax=ax,
+            cmap=cmap,
+            levels=levels,
+            transform=data_crs,
+            add_colorbar=False,
+            alpha=0.8,
+        )
 
-    # check contour levels
-    try:
-        iter(contour_levels)
-    except Exception:
-        contour_levels = [contour_levels]
+        if contour_levels is not None:
+            # check contour levels
+            try:
+                iter(contour_levels)
+            except Exception:
+                contour_levels = [contour_levels]
 
-    # plot variable field, contour line and flag_variable
-    p = ds[variable].plot.contourf(
-        ax=ax,
-        cmap=cmap,
-        levels=levels,
-        transform=data_crs,
-        add_colorbar=False,
-        alpha=0.8,
-    )
-    ds[variable].plot.contour(
-        ax=ax,
-        transform=data_crs,
-        levels=contour_levels,
-        linestyles="-",
-        linewidths=2,
-        colors="#000000",
-    )
+            ds[data.name].plot.contour(
+                ax=ax,
+                transform=data_crs,
+                levels=contour_levels,
+                linestyles="-",
+                linewidths=2,
+                colors="#000000",
+            )
+
+        # define colorbar
+        if all(x in data.attrs for x in ["units", "long_name"]):
+            cbar_label = data.long_name + " [" + data.units + "]"
+        else:
+            cbar_label = None
+
+        cax = fig.add_axes(
+            [
+                ax.get_position().x1 + 0.05,
+                ax.get_position().y0,
+                0.015,
+                ax.get_position().height,
+            ]
+        )
+        plot_utils.add_colorbar(p, cax, levels, label=cbar_label)
+
+    # plot flag data
     ds["flag"].where(ds["flag"] > 0).plot.contourf(
         ax=ax,
         colors=["white", color_events],
@@ -318,22 +339,6 @@ def plot_step(
         va="top",
         transform=ax.transAxes,
     )
-
-    # define colorbar
-    if all(x in data.attrs for x in ["units", "long_name"]):
-        cbar_label = data.long_name + " [" + data.units + "]"
-    else:
-        cbar_label = None
-
-    cax = fig.add_axes(
-        [
-            ax.get_position().x1 + 0.05,
-            ax.get_position().y0,
-            0.015,
-            ax.get_position().height,
-        ]
-    )
-    plot_utils.add_colorbar(p, cax, levels, label=cbar_label)
 
     # add coast lines and grid lines
     ax.add_feature(cfeature.COASTLINE, color="dimgrey")
@@ -359,7 +364,7 @@ def plot_tracks(
     data,
     events,
     proj=None,
-    size=(12, 8),
+    size=None,
     min_path=0,
     plot_events=False,
     labels=True,
@@ -397,12 +402,12 @@ def plot_tracks(
             Plot of the tracks
     """
 
-    # define cartopy projection
+    # define data crs
     data_crs = ccrs.PlateCarree()
-    if proj is None:
-        proj = data_crs
-
+    
     # initialize figure
+    proj = proj if proj is not None else data_crs
+    size = size if size is not None else (12, 8)
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
 
     # group event data by label and plot each path
