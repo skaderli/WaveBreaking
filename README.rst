@@ -217,9 +217,13 @@ Some suggested classifications:
         stratospheric = events[events.mean_var >= contour_level]
         tropospheric = events[events.mean_var < contour_level]
         
-        # anticyclonic and cyclonic by intensity
+        # anticyclonic and cyclonic by intensity for the Northern Hemisphere
         anticyclonic = events[events.intensity >= 0]
         cyclonic = events[events.intensity < 0]
+        
+        # anticyclonic and cyclonic by intensity for the Southern Hemisphere
+        anticyclonic = events[events.intensity <= 0]
+        cyclonic = events[events.intensity > 0]
         
         # anticyclonic and cyclonic by orientation (only for overturning events)
         anticyclonic = events[events.orientation == "anticyclonic"]
