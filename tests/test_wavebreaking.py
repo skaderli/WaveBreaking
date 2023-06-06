@@ -34,7 +34,8 @@ tqdm.tqdm = silent_tqdm
 
 from wavebreaking.utils.data_utils import check_argument_types, get_dimension_attributes
 from wavebreaking.utils.index_utils import (
-    properties_per_event,
+    calculate_properties,
+    transform_polygons,
     iterate_time_dimension,
     iterate_contour_levels,
     combine_shared,
@@ -103,31 +104,6 @@ class test_index_utils(unittest.TestCase):
         list_in = [[1, 2, 3], [2, 3, 4], [5, 6]]
         list_out = [[1, 2, 3, 4], [5, 6]]
         self.assertEqual(combine_shared(list_in), list_out)
-
-    def test_properties_per_event(self):
-        poly = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
-        date = "1959-06-03T12"
-        level = 2
-        gdf = gpd.GeoDataFrame(
-            pd.DataFrame({"date": [date], "level": [level]}), geometry=[poly]
-        )
-
-        df_check = properties_per_event(
-            data=data.PV,
-            series=gdf.iloc[0],
-            intensity=data.PV,
-            periodic_add=120,
-            time_name="time",
-            lat_name="lat",
-            nlat=179,
-            nlon=360,
-            lon_name="lon",
-            dlon=1,
-        )
-
-        self.assertIs(type(df_check), gpd.GeoDataFrame)
-        self.assertEqual(len(df_check.columns), 7)
-
 
 class test_spatial(unittest.TestCase):
     def test_calculate_momentum_flux(self):
@@ -228,7 +204,7 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(streamers), 39)
         self.assertEqual(
             streamers.columns.to_list(),
-            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "intensity", "area", "geometry"],
         )
 
     def test_overturning_index(self):
@@ -250,8 +226,8 @@ class test_indices(unittest.TestCase):
                 "level",
                 "com",
                 "mean_var",
-                "area",
                 "intensity",
+                "area",
                 "orientation",
                 "geometry",
             ],
@@ -270,7 +246,7 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(cutoffs), 20)
         self.assertEqual(
             cutoffs.columns.to_list(),
-            ["date", "level", "com", "mean_var", "area", "intensity", "geometry"],
+            ["date", "level", "com", "mean_var", "intensity", "area", "geometry"],
         )
 
 
