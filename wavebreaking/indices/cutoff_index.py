@@ -18,12 +18,10 @@ __email__ = "severin.kaderli@unibe.ch"
 
 # import modules
 import xarray as xr
-import pandas as pd
 import geopandas as gpd
-from tqdm import tqdm
 from shapely.geometry import Polygon
 
-from wavebreaking.utils.index_utils import properties_per_event
+from wavebreaking.utils.index_utils import calculate_properties, transform_polygons
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
@@ -32,7 +30,14 @@ from wavebreaking.indices.contour_index import decorator_contour_calculation
 @get_dimension_attributes("data")
 @decorator_contour_calculation
 def calculate_cutoffs(
-    data, contour_level, contours=None, min_exp=5, intensity=None, periodic_add=120, *args, **kwargs
+    data,
+    contour_level,
+    contours=None,
+    min_exp=5,
+    intensity=None,
+    periodic_add=120,
+    *args,
+    **kwargs
 ):
     """
     Identify cutoff structures.
@@ -47,7 +52,7 @@ def calculate_cutoffs(
         contour_levels : array_like
             levels for contour calculation
         contours : geopandas.GeoDataFrame, optional
-            contours calculated with wavebreaking.calculate_contours(..., 
+            contours calculated with wavebreaking.calculate_contours(...,
             original_coordinates=False)
         min_exp : int or float, optional
             Minimal longitudinal expansion of a cutoff event
@@ -83,20 +88,10 @@ def calculate_cutoffs(
     # define Polygons
     polys = [Polygon(row.geometry) for index, row in contours.iterrows()]
     gdf = gpd.GeoDataFrame(contours[["date", "level"]], geometry=polys)
+    gdf = gdf.reset_index().rename(columns={"index": "id"})
 
-    # calculate properties and transform coordinates
-    cutoffs = [
-        properties_per_event(data, row, intensity, periodic_add, *args, **kwargs)
-        for (index, row) in tqdm(
-            gdf.iterrows(),
-            desc="Calculating properties  ",
-            total=len(gdf),
-            leave=True,
-            position=0,
-        )
-    ]
-
-    if len(cutoffs) == 0:
-        return gpd.GeoDataFrame()
-    else:
-        return pd.concat(cutoffs).reset_index(drop=True)
+    # calculate properties and transform polygons
+    return gpd.GeoDataFrame(
+        calculate_properties(gdf, data, intensity, periodic_add, **kwargs),
+        geometry=transform_polygons(gdf, data, **kwargs).geometry,
+    )

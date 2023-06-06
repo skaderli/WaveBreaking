@@ -27,8 +27,9 @@ from skimage import measure
 import functools
 
 import logging
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.utils.index_utils import (
@@ -199,21 +200,30 @@ def decorator_contour_calculation(func):
                 data, contour_levels, periodic_add, original_coordinates=False
             )
         else:
-            # check type     
+            # check type
             if not isinstance(kwargs["contours"], gpd.GeoDataFrame):
                 errmsg = "contours has to be a geopandas.GeoDataFrame!"
                 raise TypeError(errmsg)
-                
+
             # check empty
             if kwargs["contours"].empty:
                 errmsg = "contours geopandas.GeoDataFrame is empty!"
                 raise ValueError(errmsg)
 
             # check contour levels
-            check_levels = [i for i in contour_levels if i not in set(kwargs["contours"].level)]
+            try:
+                iter(contour_levels)
+            except Exception:
+                contour_levels = [contour_levels]
+
+            check_levels = [
+                i for i in contour_levels if i not in set(kwargs["contours"].level)
+            ]
             if len(check_levels) > 0:
                 logger.warning(
-                    "\n The contour levels {} are not present in 'contours'".format(check_levels)
+                    "\n The contour levels {} are not present in 'contours'".format(
+                        check_levels
+                    )
                 )
 
             # check original coordinates
@@ -221,9 +231,11 @@ def decorator_contour_calculation(func):
             check_int = (coords.astype("int") == coords).all()
             check_zero = (coords[:, 0] >= 0).all()
             if not (check_int and check_zero):
-                errmsg = "Original coordinates not supported for the index calculation. "
+                errmsg = (
+                    "Original coordinates not supported for the index calculation. "
+                )
                 hint = "Use original_coordinates=False in the contour calculation."
-                raise ValueError(errmsg + hint)    
+                raise ValueError(errmsg + hint)
 
         return func(data, contour_levels, periodic_add=periodic_add, *args, **kwargs)
 

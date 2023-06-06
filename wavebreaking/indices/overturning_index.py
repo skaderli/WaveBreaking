@@ -28,7 +28,7 @@ from sklearn.metrics import DistanceMetric
 
 dist = DistanceMetric.get_metric("haversine")
 
-from wavebreaking.utils.index_utils import properties_per_event
+from wavebreaking.utils.index_utils import calculate_properties, transform_polygons
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
@@ -65,7 +65,7 @@ def calculate_overturnings(
         contour_levels : array_like
             levels for contour calculation
         contours : geopandas.GeoDataFrame, optional
-            contours calculated with wavebreaking.calculate_contours(..., 
+            contours calculated with wavebreaking.calculate_contours(...,
             original_coordinates=False)
         range_group : int or float, optional
             Maximal degrees in the longitudinal direction in which two overturning are grouped
@@ -216,25 +216,10 @@ def calculate_overturnings(
     else:
         gdf = pd.concat(overturnings).reset_index(drop=True)
 
-    # calculate properties and transform coordinates
-    overturnings = [
-        properties_per_event(data, row, intensity, periodic_add, *args, **kwargs)
-        for (index, row) in tqdm(
-            gdf.iterrows(),
-            desc="Calculating properties  ",
-            total=len(gdf),
-            leave=True,
-            position=0,
-        )
-    ]
+    gdf = gdf.reset_index().rename(columns={"index": "id"})
 
-    if len(overturnings) == 0:
-        return gpd.GeoDataFrame()
-    else:
-        overturnings = pd.concat(overturnings).reset_index(drop=True)
-        ot_gdf = gpd.GeoDataFrame(
-            pd.concat([overturnings.iloc[:, :-1], gdf.orientation], axis=1),
-            geometry=overturnings.geometry,
-        )
-
-        return ot_gdf
+    # calculate properties and transform polygons
+    return gpd.GeoDataFrame(
+        calculate_properties(gdf, data, intensity, periodic_add, **kwargs),
+        geometry=transform_polygons(gdf, data, **kwargs).geometry,
+    )

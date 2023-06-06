@@ -28,7 +28,11 @@ from sklearn.metrics import DistanceMetric
 
 dist = DistanceMetric.get_metric("haversine")
 
-from wavebreaking.utils.index_utils import properties_per_event, combine_shared
+from wavebreaking.utils.index_utils import (
+    calculate_properties,
+    transform_polygons,
+    combine_shared,
+)
 from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
@@ -63,7 +67,7 @@ def calculate_streamers(
         contour_levels : array_like
             levels for contour calculation
         contours : geopandas.GeoDataFrame, optional
-            contours calculated with wavebreaking.calculate_contours(..., 
+            contours calculated with wavebreaking.calculate_contours(...,
             original_coordinates=False)
         geo_dis : int or float, optional
             Maximal geographic distance between two contour points that describe a streamer
@@ -269,19 +273,10 @@ def calculate_streamers(
     else:
         gdf = pd.concat(streamers).reset_index(drop=True)
 
-    # calculate properties and transform coordinates
-    streamers = [
-        properties_per_event(data, row, intensity, periodic_add, *args, **kwargs)
-        for (index, row) in tqdm(
-            gdf.iterrows(),
-            desc="Calculating properties  ",
-            total=len(gdf),
-            leave=True,
-            position=0,
-        )
-    ]
+    gdf = gdf.reset_index().rename(columns={"index": "id"})
 
-    if len(streamers) == 0:
-        return gpd.GeoDataFrame()
-    else:
-        return pd.concat(streamers).reset_index(drop=True)
+    # calculate properties and transform polygons
+    return gpd.GeoDataFrame(
+        calculate_properties(gdf, data, intensity, periodic_add, **kwargs),
+        geometry=transform_polygons(gdf, data, **kwargs).geometry,
+    )
