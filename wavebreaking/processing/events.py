@@ -20,8 +20,6 @@ __email__ = "severin.kaderli@unibe.ch"
 import xarray as xr
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import LineString, MultiPolygon
-import shapely.vectorized
 import numpy as np
 from tqdm import tqdm
 import itertools as itertools
@@ -40,7 +38,7 @@ from wavebreaking.utils import index_utils
 @check_argument_types(["data", "events"], [xr.DataArray, gpd.GeoDataFrame])
 @check_empty_dataframes
 @get_dimension_attributes("data")
-def to_xarray(data, events, name="flag", *args, **kwargs):
+def to_xarray(data, events, flag="ones", name="flag", *args, **kwargs):
     """
     Create xarray.DataArray from events stored in a geopandas.GeoDataFrame.
     Grid cells where an event is present are flagged with the value 1.
@@ -53,6 +51,10 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
             data used for the index calculation
         events : geopandas.GeoDataFrame
             GeoDataFrame with the date and geometry for each event
+        flag : string, optional
+            column name of the events geopandas.GeoDataFrame
+            flag is set where an event is present
+            default value is "ones"
         name : string, optional
             name of the xarray variable that is created
 
@@ -62,59 +64,43 @@ def to_xarray(data, events, name="flag", *args, **kwargs):
             Data with events flagged with the value 1
     """
 
-    # get coordinates of all events at the same time step
-    def events_to_grid_points(geom, date):
-        """
-        Extract all grid cells that are enclosed by the path of a streamer
-        """
-
-        # get grid points
-        x, y = np.meshgrid(data[kwargs["lon_name"]], data[kwargs["lat_name"]])
-        x, y = x.flatten(), y.flatten()
-
-        def polygon_to_grid(poly):
-            # get interior points and border
-            buffer = ((kwargs["dlon"] + kwargs["dlat"]) / 2) / 2
-            mask_contain = shapely.vectorized.contains(poly.buffer(buffer), x, y)
-
-            return np.c_[x, y][mask_contain]
-
-        # get coords DataFrame
-        if type(geom) == LineString:
-            coords = np.asarray(geom.coords.xy).T
-        elif type(geom) == MultiPolygon:
-            coords = np.vstack([polygon_to_grid(poly) for poly in geom.geoms])
-        else:
-            coords = polygon_to_grid(geom)
-        return pd.DataFrame(
-            {"date": date, "x": coords[:, 0], "y": coords[:, 1]}
-        ).drop_duplicates()
-
-    # get all grid points of all events
-    events_concat = pd.concat(
-        [
-            events_to_grid_points(row.geometry, row.date)
-            for (index, row) in tqdm(
-                events.iterrows(),
-                desc="Converting to DataArray ",
-                total=len(events),
-                leave=True,
-                position=0,
-            )
-        ]
+    # get grid points
+    lon, lat = np.meshgrid(data[kwargs["lon_name"]], data[kwargs["lat_name"]])
+    lonf, latf = lon.flatten(), lat.flatten()
+    points = gpd.GeoDataFrame(
+        pd.DataFrame({"lon": lonf, "lat": latf}),
+        geometry=gpd.points_from_xy(lonf, latf),
     )
+
+    # get coordinates of all events at the same time step
+    buffer = events.copy()
+    buffer.geometry = buffer.geometry.buffer(
+        ((kwargs["dlon"] + kwargs["dlat"]) / 2) / 2
+    )
+    merged = gpd.sjoin(buffer, points, how="inner", predicate="contains").sort_index()
 
     # create empty xarray.Dataset with the same dimension as the original Dataset
     data_flagged = xr.zeros_like(data)
 
-    # set coordinates of the events to the value 1
+    # flag coordinates in DataSet
+    if flag == "ones":
+        set_val = np.ones(len(merged))
+    else:
+        try:
+            set_val = merged[flag].values
+        except KeyError:
+            errmsg = "{} is not a column of the events geopandas.GeoDataFrame.".format(
+                flag
+            )
+            raise KeyError(errmsg)
+
     data_flagged.loc[
         {
-            kwargs["time_name"]: events_concat.date.to_xarray(),
-            kwargs["lat_name"]: events_concat.y.to_xarray(),
-            kwargs["lon_name"]: events_concat.x.to_xarray(),
+            kwargs["time_name"]: merged.date.to_xarray(),
+            kwargs["lat_name"]: merged.lat.to_xarray(),
+            kwargs["lon_name"]: merged.lon.to_xarray(),
         }
-    ] = np.ones(len(events_concat))
+    ] = set_val
 
     # change type and name
     data_flagged = data_flagged.astype("int8")
