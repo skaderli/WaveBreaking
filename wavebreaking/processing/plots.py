@@ -86,7 +86,7 @@ def plot_clim(
 
     # define data crs
     data_crs = ccrs.PlateCarree()
-    
+
     # initialize figure
     proj = proj if proj is not None else data_crs
     size = size if size is not None else (12, 8)
@@ -230,7 +230,7 @@ def plot_step(
 
     # define data crs
     data_crs = ccrs.PlateCarree()
-    
+
     # initialize figure
     proj = proj if proj is not None else data_crs
     size = size if size is not None else (12, 8)
@@ -249,13 +249,12 @@ def plot_step(
         except KeyError:
             errmsg = "step {} not supported or out of range!".format(step)
             raise KeyError(errmsg)
-            
 
     # get date
     date = ds[kwargs["time_name"]].values
     if date.dtype == np.dtype("datetime64[ns]"):
         date = pd.Timestamp(date).strftime("%Y-%m-%dT%H")
-        
+
     # add data if provided
     if data is not None:
         ds[data.name] = data.sel({kwargs["time_name"]: date})
@@ -275,9 +274,8 @@ def plot_step(
     # plot variable field and contour lines
     if data is not None:
         if levels is None:
-            levels = plot_utils.get_levels(ds[data.name].min(),
-                                           ds[data.name].max())
-        
+            levels = plot_utils.get_levels(ds[data.name].min(), ds[data.name].max())
+
         p = ds[data.name].plot.contourf(
             ax=ax,
             cmap=cmap,
@@ -404,7 +402,7 @@ def plot_tracks(
 
     # define data crs
     data_crs = ccrs.PlateCarree()
-    
+
     # initialize figure
     proj = proj if proj is not None else data_crs
     size = size if size is not None else (12, 8)
