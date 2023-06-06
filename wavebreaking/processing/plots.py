@@ -116,15 +116,7 @@ def plot_clim(
 
     # add longitude to ensure that there is no gap in a periodic field
     if periodic is True:
-        freq = xr.concat(
-            [
-                freq,
-                freq.isel({kwargs["lon_name"]: 0}).assign_coords(
-                    {kwargs["lon_name"]: freq[kwargs["lon_name"]].max() + 1}
-                ),
-            ],
-            dim=kwargs["lon_name"],
-        )
+        freq = plot_utils.calculate_periodic_field(freq, **kwargs)
 
     # define levels
     if levels is None:
@@ -239,44 +231,32 @@ def plot_step(
     # select data
     if type(step) is str or type(step) == np.dtype("datetime64[ns]"):
         try:
-            ds = flag_data.sel({kwargs["time_name"]: step}).to_dataset()
+            flag = flag_data.sel({kwargs["time_name"]: step})
         except KeyError:
             errmsg = "step {} not supported or out of range!".format(step)
             raise KeyError(errmsg)
     else:
         try:
-            ds = flag_data.isel({kwargs["time_name"]: step}).to_dataset()
+            flag = flag_data.isel({kwargs["time_name"]: step})
         except KeyError:
             errmsg = "step {} not supported or out of range!".format(step)
             raise KeyError(errmsg)
 
     # get date
-    date = ds[kwargs["time_name"]].values
+    date = flag[kwargs["time_name"]].values
     if date.dtype == np.dtype("datetime64[ns]"):
         date = pd.Timestamp(date).strftime("%Y-%m-%dT%H")
 
-    # add data if provided
+    # plot field data if provided
     if data is not None:
-        ds[data.name] = data.sel({kwargs["time_name"]: date})
+        field = data.sel({kwargs["time_name"]: date})
+        if periodic is True:
+            field = plot_utils.calculate_periodic_field(field, **kwargs)
 
-    # add longitude to ensure that there is no gap in a periodic field
-    if periodic is True:
-        ds = xr.concat(
-            [
-                ds,
-                ds.isel({kwargs["lon_name"]: 0}).assign_coords(
-                    {kwargs["lon_name"]: ds[kwargs["lon_name"]].max() + 1}
-                ),
-            ],
-            dim=kwargs["lon_name"],
-        )
-
-    # plot variable field and contour lines
-    if data is not None:
         if levels is None:
-            levels = plot_utils.get_levels(ds[data.name].min(), ds[data.name].max())
+            levels = plot_utils.get_levels(field.min(), field.max())
 
-        p = ds[data.name].plot.contourf(
+        p = field.plot.contourf(
             ax=ax,
             cmap=cmap,
             levels=levels,
@@ -292,7 +272,7 @@ def plot_step(
             except Exception:
                 contour_levels = [contour_levels]
 
-            ds[data.name].plot.contour(
+            field.plot.contour(
                 ax=ax,
                 transform=data_crs,
                 levels=contour_levels,
@@ -302,8 +282,8 @@ def plot_step(
             )
 
         # define colorbar
-        if all(x in data.attrs for x in ["units", "long_name"]):
-            cbar_label = data.long_name + " [" + data.units + "]"
+        if all(x in field.attrs for x in ["units", "long_name"]):
+            cbar_label = field.long_name + " [" + field.units + "]"
         else:
             cbar_label = None
 
@@ -318,7 +298,10 @@ def plot_step(
         plot_utils.add_colorbar(p, cax, levels, label=cbar_label)
 
     # plot flag data
-    ds["flag"].where(ds["flag"] > 0).plot.contourf(
+    if periodic is True:
+        flag = plot_utils.calculate_periodic_field(flag, **kwargs)
+
+    flag.where(flag > 0).plot.contourf(
         ax=ax,
         colors=["white", color_events],
         levels=[0, 0.5],

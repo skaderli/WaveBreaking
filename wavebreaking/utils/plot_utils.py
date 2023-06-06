@@ -17,10 +17,27 @@ __email__ = "severin.kaderli@unibe.ch"
 
 # import modules
 import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.path as mpath
+
+
+def calculate_periodic_field(da, **kwargs):
+    """
+    Add first longitude at the end to ensure
+    that there is no gap in a periodic field
+    """
+    return xr.concat(
+        [
+            da,
+            da.isel({kwargs["lon_name"]: 0}).assign_coords(
+                {kwargs["lon_name"]: da[kwargs["lon_name"]].max() + 1}
+            ),
+        ],
+        dim=kwargs["lon_name"],
+    )
 
 
 def get_levels(min_freq, max_freq):
