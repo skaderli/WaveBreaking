@@ -34,8 +34,6 @@ tqdm.tqdm = silent_tqdm
 
 from wavebreaking.utils.data_utils import check_argument_types, get_dimension_attributes
 from wavebreaking.utils.index_utils import (
-    calculate_properties,
-    transform_polygons,
     iterate_time_dimension,
     iterate_contour_levels,
     combine_shared,
@@ -105,6 +103,7 @@ class test_index_utils(unittest.TestCase):
         list_out = [[1, 2, 3, 4], [5, 6]]
         self.assertEqual(combine_shared(list_in), list_out)
 
+
 class test_spatial(unittest.TestCase):
     def test_calculate_momentum_flux(self):
         self.assertIs(type(calculate_momentum_flux(data.U, data.V)), xr.DataArray)
@@ -129,13 +128,17 @@ class test_events(unittest.TestCase):
         self.assertEqual(flag_data.name, name)
 
     def test_track_events(self):
-        date = np.datetime64("1959-06-03T12")
+        date1 = np.datetime64("1959-06-03T12")
+        date2 = np.datetime64("1959-06-03T18")
         events = gpd.GeoDataFrame(
-            pd.DataFrame([{"date": date}]),
-            geometry=[Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])],
+            pd.DataFrame({"date": [date1, date2]}),
+            geometry=[
+                Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]),
+                Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]),
+            ],
         )
 
-        tracked = track_events(events=events, time_range=24)
+        tracked = track_events(events=events, method="by_overlap")
 
         self.assertIs(type(tracked), gpd.GeoDataFrame)
         self.assertEqual(tracked.iloc[0].label, 0)
