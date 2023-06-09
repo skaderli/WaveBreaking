@@ -21,7 +21,6 @@ import xarray as xr
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-from tqdm import tqdm
 import itertools as itertools
 from sklearn.metrics import DistanceMetric
 
@@ -112,7 +111,9 @@ def to_xarray(data, events, flag="ones", name="flag", *args, **kwargs):
 
 @check_argument_types(["events"], [pd.DataFrame])
 @check_empty_dataframes
-def track_events(events, time_range, method="by_overlapping", radius=1000):
+def track_events(
+    events, time_range=None, method="by_overlapping", buffer=0, overlap=0, distance=1000
+):
     """
     Temporal tracking of events.
     Events receive the same label if they spatially overlap at step t
@@ -122,17 +123,23 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
     ----------
         events : geopandas.GeoDataFrame
             GeoDataFrame with the date and coordinates of each identified event
-        time_range: int or float
-            Time range for combining spatially overlapping events. The units of
+        time_range: int or float, optional
+            Time range for temporally tracking the events. The units of
             time_range is hours if the type of the time dimension is np.datetime64.
-        method : {"by_overlapping", "by_radius"}, optional
+            If not specified, the smallest time difference larger than zero is used.
+        method : {"by_overlap", "by_distance"}, optional
             Method for temporally tracking the events:
-                * "by_overlapping": Events receive the same label if they spatially
+                * "by_overlap": Events receive the same label if they spatially
                     overlap at step t and t + time_range.
-                * "by_radius": Events receive the same label if their centre of mass
-                    is inside the distance "radius"
-        radius : int or float, optional
-            Radius in km for tracking events with the "by_radius" method
+                * "by_distance": Events receive the same label if their centre of mass
+                    is closer than "distance"
+        buffer : float, optional
+            buffer around event polygon in degrees for the 'by_overlap' method
+        overlap : float, optional
+            minimum percentage of overlapping for the 'by_overlap' method
+        distance : int or float, optional
+            maximum distance in km between two events for the 'by_distance' method
+
 
     Returns
     -------
@@ -143,51 +150,78 @@ def track_events(events, time_range, method="by_overlapping", radius=1000):
     # reset index of events
     events = events.reset_index(drop=True)
 
-    combine = []
-    for date in tqdm(
-        events.date, desc="Tracking events", total=len(events), leave=True, position=0
-    ):
-        # select events that are in range of time_range
+    # detect time range
+    if time_range is None:
+        date_dif = events.date.diff()
+        time_range = date_dif[date_dif > pd.Timedelta(0)].min().total_seconds() / 3600
+
+    # select events that are in range of time_range
+    def get_range_combinations(events, index):
+        """
+        find events within the next steps that are in time range
+        """
         if events.date.dtype == np.dtype("datetime64[ns]"):
-            dates = pd.Series([pd.Timestamp(item) for item in events.date])
-            diffs = ((dates - date).dt.total_seconds() / 3600).abs()
+            diffs = (events.date - events.date.iloc[index]).dt.total_seconds() / 3600
         else:
-            diffs = abs(events.date - date)
+            diffs = abs(events.date - events.date.iloc[index])
 
-        check = (diffs >= 0) & (diffs <= time_range)
-        index_combinations = itertools.combinations(events[check].index, r=2)
+        check = (diffs > 0) & (diffs <= time_range)
 
-        if method == "by_radius":
-            # check which centre of mass are in range of "radius"
-            combine.append(
-                [
-                    combination
-                    for combination in index_combinations
-                    if dist.pairwise(
-                        np.radians(
-                            list(events.iloc[[combination[0], combination[1]]].com)
-                        )
-                    )[0, 1]
-                    * 6371
-                    <= radius
-                ]
+        return [(index, close) for close in events[check].index]
+
+    range_comb = np.asarray(
+        list(
+            set(
+                itertools.chain.from_iterable(
+                    [get_range_combinations(events, index) for index in events.index]
+                )
             )
-        elif method == "by_overlapping":
-            # check which events are overlapping
-            combine.append(
-                [
-                    combination
-                    for combination in index_combinations
-                    if events.iloc[combination[0]].geometry.intersects(
-                        events.iloc[combination[1]].geometry
-                    )
-                ]
-            )
-        else:
-            raise ValueError("method not supported!")
+        )
+    )
+
+    if len(range_comb) == 0:
+        errmsg = "No events detected in the time range: {}".format(time_range)
+        raise ValueError(errmsg)
+
+    if method == "by_distance":
+        # get centre of mass
+        com1 = np.asarray(list(events.iloc[range_comb[:, 0]].com))
+        com2 = np.asarray(list(events.iloc[range_comb[:, 1]].com))
+
+        # calculate distance between coms
+        dist_com = np.asarray(
+            [dist.pairwise(np.radians([p1, p2]))[0, 1] for p1, p2 in zip(com1, com2)]
+        )
+
+        # check which coms are in range of 'distance'
+        check_com = dist_com * 6371 < distance
+
+        # select combinations
+        combine = range_comb[check_com]
+
+    elif method == "by_overlap":
+        # select geometries that are in time range and add buffer
+        geom1 = events.iloc[range_comb[:, 0]].geometry.buffer(buffer).make_valid()
+        geom2 = events.iloc[range_comb[:, 1]].geometry.buffer(buffer).make_valid()
+
+        # calculate and check the percentage of overlap
+        inter = geom1.intersection(geom2, align=False)
+        check_overlap = (
+            inter.area.values
+            / (geom2.area.values + geom1.area.values - inter.area.values)
+            > overlap
+        )
+
+        # select combinations
+        combine = range_comb[check_overlap]
+
+    else:
+        errmsg = "'{}' not supported as method!".format(method)
+        hint = " Supported methods are 'by_overlap' and 'by_distance'"
+        raise ValueError(errmsg + hint)
 
     # combine tracked indices to groups
-    combine = index_utils.combine_shared(list(itertools.chain.from_iterable(combine)))
+    combine = index_utils.combine_shared(combine)
 
     # initiate label column
     events["label"] = events.index
