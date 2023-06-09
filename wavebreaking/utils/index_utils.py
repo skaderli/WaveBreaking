@@ -59,7 +59,7 @@ def calculate_properties(events, data, intensity, periodic_add, **kwargs):
         np.round(6371 * 2 * np.pi / (360 / ((kwargs["dlon"] + kwargs["dlat"]) / 2)))
         ** 2
     )
-    weight_lat = np.cos(data[kwargs["lat_name"]].values * np.pi / 180) * area_cell
+    weight_lat = np.cos(np.radians(data[kwargs["lat_name"]].values)) * area_cell
     merged["areas"] = weight_lat[merged.y]
 
     # calculate mean_var, intensity and centre of mass
@@ -133,7 +133,7 @@ def transform_polygons(events, data, **kwargs):
         """
         # get coordinates and check split and last meridian
         coords = np.asarray(polygon.exterior.coords.xy).T.astype("int")
-        split = (coords >= kwargs["nlon"]).any()
+        split = (coords[:, 0] >= kwargs["nlon"]).any()
 
         # transform coordinates
         coords = np.c_[coords[:, 0] % kwargs["nlon"], coords[:, 1]]
