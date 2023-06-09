@@ -112,7 +112,7 @@ def to_xarray(data, events, flag="ones", name="flag", *args, **kwargs):
 @check_argument_types(["events"], [pd.DataFrame])
 @check_empty_dataframes
 def track_events(
-    events, time_range=None, method="by_overlapping", buffer=0, overlap=0, distance=1000
+    events, time_range=None, method="by_overlap", buffer=0, overlap=0, distance=1000
 ):
     """
     Temporal tracking of events.
