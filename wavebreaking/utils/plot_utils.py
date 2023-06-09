@@ -45,16 +45,18 @@ def get_levels(min_freq, max_freq):
     Define default levels
     """
 
-    max_level = np.round(max_freq * 2) / 2
-    min_level = np.round(min_freq * 2) / 2
+    max_level = np.round(max_freq)
+    min_level = np.round(min_freq)
+    level_range = max_level - min_level
 
-    if min_level >= 0:
-        levels = np.arange(0, max_level, np.round(max_level / 7 * 2) / 2).tolist()
+    if min_level < 0:
+        max_both = np.abs([min_level, max_level]).max()
+        if level_range / 16 > 0.5:
+            return np.round(np.linspace(-max_both, max_both, num=18), 1)[1:-1]
+        else:
+            return np.round(np.linspace(-max_both, max_both, num=10), 1)[1:-1]
     else:
-        bound = max([max_level, abs(min_level)])
-        levels = np.arange(0, bound, np.round(max_level / 7 * 2) / 2).tolist()
-        levels += [-x for x in levels]
-    return sorted(set(levels))
+        return np.round(np.linspace(min_level, max_level, num=8), 1)
 
 
 def get_new_cmap(color_palette):
