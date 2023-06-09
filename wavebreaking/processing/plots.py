@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
@@ -391,6 +392,16 @@ def plot_tracks(
     size = size if size is not None else (12, 8)
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj), figsize=size)
 
+    # set background color
+    ax.set_facecolor((0.1, 0.1, 0.1, 0.05))
+
+    # get colors for event plotting
+    lab, count = np.unique(events.label, return_counts=True)
+    lab_sel = lab[count > min_path]
+    color_range = {}
+    for r, name in enumerate(lab_sel):
+        color_range[name] = matplotlib.cm.get_cmap("rainbow")(r / len(lab_sel))
+
     # group event data by label and plot each path
     for name, group in events.groupby("label"):
         if len(group) > min_path:
@@ -412,7 +423,7 @@ def plot_tracks(
             # plot the coordinates of the events
             if plot_events is True:
                 group.plot(
-                    ax=ax, color="black", transform=data_crs, alpha=0.1, markersize=3
+                    ax=ax, color=color_range[name], transform=data_crs, alpha=0.5
                 )
 
             max_lon = max(data[kwargs["lon_name"]].values) + kwargs["dlon"]
