@@ -50,7 +50,7 @@ Parts of the data setup functions and of the tracking function are based on the 
 
 **Referencing:**
 
-* Please cite WaveBreaking in your publication: Kaderli, S., 2023. WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking. https://doi.org/10.5281/zenodo.8008801
+* Please cite WaveBreaking in your publication: Kaderli, S., 2023. WaveBreaking - Detection, Classification and Tracking of Rossby Wave Breaking. https://doi.org/10.5281/zenodo.8019709 
 * If you are using the Streamer Index, please cite `Wernli and Sprenger (2007)`_ (and `Sprenger et al. 2017`_).
 * If you are using the Overturning INdex, please cite `Barnes and Hartmann (2012)`_.
 
@@ -320,8 +320,10 @@ Last but not least, WaveBreaking provides a routine to track events over time. B
         # track events
         tracked = wb.event_tracking(events=anticyclonic, 
                                     time_range=6, #time range for temporal tracking in hours
-                                    method="by_radius", #method for tracking
-                                    radius=1000) #radius in km for method "by_radius"
+                                    method="by_overlap", #method for tracking ["by_overlap", "by_distance"], optional
+                                    buffer=0, # buffer in degrees for polygons overlapping, optional
+                                    overlap=0, # minimum overlap percentage, optinal
+                                    distance=1000) # distance in km for method "by_distance"
 
 The result can be visualized by plotting the paths of the tracked events:
 
