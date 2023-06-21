@@ -167,7 +167,7 @@ def transform_polygons(events, data, **kwargs):
         if len(polygons) == 0:
             return Polygon()
         elif len(polygons) == 1:
-            return transform_coords(polygons[0])
+            return transform_coords(polygons[0])[1]
         else:
             polys = [transform_coords(p)[1] for p in polygons]
             return MultiPolygon(polys)
