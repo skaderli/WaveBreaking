@@ -116,7 +116,7 @@ def calculate_properties(events, data, intensity, periodic_add, **kwargs):
         "com": com,
         "mean_var": (agg_merged.mean_var / agg_merged.areas).round(2),
         "intensity": (agg_merged.intensity / agg_merged.areas).round(2),
-        "area": agg_merged.areas.round(2),
+        "event_area": agg_merged.areas.round(2),
     }
 
     # add orientation if available
@@ -166,6 +166,8 @@ def transform_polygons(events, data, **kwargs):
         # transform if possible
         if len(polygons) == 0:
             return Polygon()
+        elif len(polygons) == 1:
+            return transform_coords(polygons[0])
         else:
             polys = [transform_coords(p)[1] for p in polygons]
             return MultiPolygon(polys)
