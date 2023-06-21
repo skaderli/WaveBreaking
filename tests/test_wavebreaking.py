@@ -207,7 +207,7 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(streamers), 39)
         self.assertEqual(
             streamers.columns.to_list(),
-            ["date", "level", "com", "mean_var", "intensity", "area", "geometry"],
+            ["date", "level", "com", "mean_var", "intensity", "event_area", "geometry"],
         )
 
     def test_overturning_index(self):
@@ -230,7 +230,7 @@ class test_indices(unittest.TestCase):
                 "com",
                 "mean_var",
                 "intensity",
-                "area",
+                "event_area",
                 "orientation",
                 "geometry",
             ],
@@ -249,7 +249,7 @@ class test_indices(unittest.TestCase):
         self.assertEqual(len(cutoffs), 20)
         self.assertEqual(
             cutoffs.columns.to_list(),
-            ["date", "level", "com", "mean_var", "intensity", "area", "geometry"],
+            ["date", "level", "com", "mean_var", "intensity", "event_area", "geometry"],
         )
 
 
