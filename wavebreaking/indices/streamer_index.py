@@ -88,7 +88,7 @@ def calculate_streamers(
                 * "level": level of the contour line
                 * "com": center of mass in the format (x,y)
                 * "mean_var": mean of the variable used for the streamer calculations
-                * "area": area of a streamer
+                * "event_area": area of a streamer
                 * "intensity": sum of the intensity (momentum flux)
                 * "geometry": (Multi)Polygon with coordinates in the format (x,y)
     """

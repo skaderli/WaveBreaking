@@ -71,7 +71,7 @@ def calculate_cutoffs(
                 * "level": level of the contour line
                 * "com": center of mass in the format (x,y)
                 * "mean_var": mean of the variable used for the contour calculation
-                * "area": area of a cutoff event
+                * "event_area": area of a cutoff event
                 * "intensity": sum of the intensity (momentum flux)
                 * "geometry": (Multi)Polygon with the coordinates in the format (x,y)
     """

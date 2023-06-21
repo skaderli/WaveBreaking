@@ -86,7 +86,7 @@ def calculate_overturnings(
                 * "level": level of the contour line
                 * "com": center of mass in the format (x,y)
                 * "mean_var": mean of the variable used for the overturning calculations
-                * "area": area of a overturning event;
+                * "event_area": area of a overturning event;
                 * "intensity": sum of the intensity (momentum flux)
                 * "orientation": orientation of the most west- and eastward point
                 * "geometry": (Multi)Polygon with coordinates in the format (x,y)
