@@ -191,3 +191,24 @@ def get_dimension_attributes(arg_name):
         return wrapper
 
     return decorator
+
+
+def correct_dimension_orientation(data, *args, **kwargs):
+    """
+    check the orientation of the latitude and longitude dimension
+    """
+                
+    # check orientation of latitude dimensions (affects the orientation condition)
+    wrong_lat_orientation = np.average(np.diff(data[kwargs["lat_name"]])) < 0
+    wrong_lon_orientation = np.average(np.diff(data[kwargs["lon_name"]])) < 0
+
+    # correct latitude orientation
+    if wrong_lat_orientation:
+        data = data.sortby('lat', ascending=True)
+
+    # correct longitude orientation
+    if wrong_lon_orientation:
+        data = data.sortby('lon', ascending=True)
+
+    return data
+
