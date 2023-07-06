@@ -10,7 +10,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['numpy',
+requirements = ['python >= 3.9',
+                'numpy',
                 'xarray',
                 'netcdf4',
                 'pandas',

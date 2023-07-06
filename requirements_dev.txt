@@ -1,3 +1,4 @@
+python >= 3.9
 numpy
 xarray
 netCDF4
