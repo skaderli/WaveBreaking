@@ -31,7 +31,11 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
-from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types
+from wavebreaking.utils.data_utils import (
+    get_dimension_attributes,
+    check_argument_types,
+    correct_dimension_orientation,
+)
 from wavebreaking.utils.index_utils import (
     iterate_time_dimension,
     iterate_contour_levels,
@@ -78,6 +82,9 @@ def calculate_contours(
                 * "mean_lat": mean latitude of the contours
                 * "geometry": LineString object with the contour coordinates in the format (x,y)
     """
+
+    # correct dimension orientation if needed
+    data = correct_dimension_orientation(data, *args, **kwargs)
 
     # select variable and time step for the contour calculation
     ds = data.sel({kwargs["time_name"]: kwargs["step"]})

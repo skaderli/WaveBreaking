@@ -2,6 +2,8 @@ name: wb_env
 channels:
   - conda-forge
 dependencies:
+  - python
+  - numpy
   - xarray
   - netCDF4
   - pandas
@@ -9,8 +11,9 @@ dependencies:
   - scikit-image
   - scipy
   - tqdm
-  - shapely
+  - shapely >= 2.0.1
   - scikit-learn
+# for plotting
   - matplotlib
   - cartopy
 # for testing
