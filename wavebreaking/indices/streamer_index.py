@@ -33,7 +33,11 @@ from wavebreaking.utils.index_utils import (
     transform_polygons,
     combine_shared,
 )
-from wavebreaking.utils.data_utils import get_dimension_attributes, check_argument_types, correct_dimension_orientation
+from wavebreaking.utils.data_utils import (
+    get_dimension_attributes,
+    check_argument_types,
+    correct_dimension_orientation,
+)
 from wavebreaking.indices.contour_index import decorator_contour_calculation
 
 
@@ -92,7 +96,7 @@ def calculate_streamers(
                 * "intensity": sum of the intensity (momentum flux)
                 * "geometry": (Multi)Polygon with coordinates in the format (x,y)
     """
-    
+
     # correct dimension orientation if needed
     data = correct_dimension_orientation(data, *args, **kwargs)
 
