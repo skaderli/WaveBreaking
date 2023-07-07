@@ -15,7 +15,7 @@ dependencies:
   - scikit-learn
 # for plotting
   - matplotlib
-  - cartopy
+  - cartopy >= 0.21.1
 # for testing
   - pip
   - flake8
