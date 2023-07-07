@@ -123,6 +123,8 @@ This tutorial shows how to calculate RWB events step by step. After successfully
         import wavebreaking as wb
         
 More information about the functions presented below can be found in the `documentation <https://wavebreaking.readthedocs.io/en/latest/modules.html>`_.
+
+Please note that the algorithm depends on the order of the spatial dimensions. Both the longitude and latitude dimensions should be in ascending order. Although the WaveBreaking tool identifies and adjusts descending coordinates, the dataset should be checked and adapted before starting the calculation to get the best performance.  
    
 Data pre-processing:
 ~~~~~~~~~~~~~~~~~~~~~   
