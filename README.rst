@@ -320,7 +320,7 @@ Last but not least, WaveBreaking provides a routine to track events over time. B
         anticyclonic = overturnings[overturnings.orientation == "anticyclonic"]
 
         # track events
-        tracked = wb.event_tracking(events=anticyclonic, 
+        tracked = wb.track_events(events=anticyclonic, 
                                     time_range=6, #time range for temporal tracking in hours
                                     method="by_overlap", #method for tracking ["by_overlap", "by_distance"], optional
                                     buffer=0, # buffer in degrees for polygons overlapping, optional
