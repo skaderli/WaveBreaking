@@ -102,7 +102,8 @@ def to_xarray(data, events, flag="ones", name="flag", *args, **kwargs):
     ] = set_val
 
     # change type and name
-    data_flagged = data_flagged.astype("int8")
+    if flag == 'ones':
+        data_flagged = data_flagged.astype("int8")
     data_flagged.name = name
     data_flagged.attrs["long_name"] = "flag wave breaking"
 
