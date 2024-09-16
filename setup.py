@@ -21,7 +21,7 @@ requirements = ['numpy',
                 'shapely >= 2.0.1',
                 'scikit-learn',
                 'matplotlib',
-                'cartopy']
+                'cartopy >= 0.21.1']
 
 test_requirements = ['pytest>=3', ]
 
