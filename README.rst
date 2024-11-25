@@ -5,8 +5,8 @@
         :target: https://github.com/skaderli/wavebreaking/blob/master/LICENSE
         :alt: License
         
-.. image:: https://zenodo.org/badge/431515314.svg
-   :target: https://zenodo.org/badge/latestdoi/431515314
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.14214463.svg
+  :target: https://doi.org/10.5281/zenodo.14214463
         
 .. image:: https://readthedocs.org/projects/wavebreaking/badge/?version=latest
         :target: https://wavebreaking.readthedocs.io/en/latest/?version=latest
